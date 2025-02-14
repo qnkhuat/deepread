@@ -23,12 +23,52 @@ function Viewer() {
     visible: false
   });
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
+  const handleFileUpload = async (file) => {
     if (file?.type === 'application/pdf') {
       const url = URL.createObjectURL(file);
       setPdfUrl(url);
+      
+      // Send file to backend
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const response = await fetch('http://localhost:8000/chat', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await response.json();
+        console.log('Upload response:', data);
+        
+        // Add the summary to chat messages
+        if (data.summary) {
+          setMessages([
+            ...messages,
+            { text: 'Here\'s a summary of the document:', sender: 'bot' },
+            { text: data.summary, sender: 'bot' }
+          ]);
+        }
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        setMessages([
+          ...messages,
+          { text: 'Error processing the document. Please try again.', sender: 'bot' }
+        ]);
+      }
+    }
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    await handleFileUpload(file);
+  };
+
+  // Update the file input onChange handler
+  const handleFileInputChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      await handleFileUpload(file);
     }
   };
 
@@ -49,13 +89,7 @@ function Viewer() {
           <input
             type="file"
             accept="application/pdf"
-            onChange={(e) => {
-              const file = e.target.files[0];
-              if (file) {
-                const url = URL.createObjectURL(file);
-                setPdfUrl(url);
-              }
-            }}
+            onChange={handleFileInputChange}
             style={styles.fileInput}
           />
           <button 
@@ -69,8 +103,16 @@ function Viewer() {
     );
   }
 
-  function onDocumentLoadSuccess({ numPages }) {
-    setNumPages(numPages);
+  async function onDocumentLoadSuccess(document) {
+    setNumPages(document.numPages);
+    
+    // Extract text from all pages
+    for (let i = 1; i <= document.numPages; i++) {
+      const page = await document.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => item.str).join(' ');
+      console.log(`Page ${i} text:`, pageText);
+    }
   }
 
   const handleSendMessage = (e) => {
