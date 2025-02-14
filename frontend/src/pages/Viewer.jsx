@@ -16,16 +16,57 @@ function Viewer() {
   const [numPages, setNumPages] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
+  const [pdfUrl, setPdfUrl] = useState(null);
   const [selection, setSelection] = useState({
     text: '',
     position: { x: 0, y: 0 },
     visible: false
   });
 
-  // If no PDF URL is provided, redirect to upload page
-  if (!location.state?.pdfUrl) {
-    navigate('/');
-    return null;
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file?.type === 'application/pdf') {
+      const url = URL.createObjectURL(file);
+      setPdfUrl(url);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  // Update the drop zone render when no PDF
+  if (!pdfUrl && !location.state?.pdfUrl) {
+    return (
+      <div 
+        style={styles.dropZone}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+      >
+        <div style={styles.dropZoneContent}>
+          <p>Drop a PDF file here or</p>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => {
+              const file = e.target.files[0];
+              if (file) {
+                const url = URL.createObjectURL(file);
+                setPdfUrl(url);
+              }
+            }}
+            style={styles.fileInput}
+          />
+          <button 
+            onClick={() => document.querySelector('input[type="file"]').click()}
+            style={styles.uploadButton}
+          >
+            Choose File
+          </button>
+        </div>
+      </div>
+    );
   }
 
   function onDocumentLoadSuccess({ numPages }) {
@@ -66,7 +107,12 @@ function Viewer() {
 
   return (
     <div style={styles.container}>
-      <div style={styles.documentContainer} onMouseUp={handleTextSelection}>
+      <div 
+        style={styles.documentContainer} 
+        onMouseUp={handleTextSelection}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+      >
         {selection.visible && (
           <button
             onClick={handleAddToChat}
@@ -81,7 +127,7 @@ function Viewer() {
           </button>
         )}
         <Document
-          file={location.state.pdfUrl}
+          file={pdfUrl || location.state.pdfUrl}
           onLoadSuccess={onDocumentLoadSuccess}
         >
           {Array.from(new Array(numPages), (el, index) => (
@@ -197,6 +243,34 @@ const styles = {
     cursor: 'pointer',
     zIndex: 1000,
     fontSize: '14px',
+  },
+  dropZone: {
+    width: '100%',
+    height: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '2px dashed #ccc',
+    borderRadius: '8px',
+    backgroundColor: '#f8f9fa',
+    cursor: 'pointer',
+  },
+  dropZoneContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '1rem',
+  },
+  fileInput: {
+    display: 'none',
+  },
+  uploadButton: {
+    padding: '0.5rem 1rem',
+    backgroundColor: '#007bff',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
   },
 };
 
