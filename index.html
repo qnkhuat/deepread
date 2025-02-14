@@ -1,37 +1,54 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PDF Uploader and Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Viewer</title>
+  <script src="https://unpkg.com/htmx.org@2.0.0-alpha1"></script>
+  <script type="module" src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 10px; }
-    #pdfContainer {
-      width: 100%;
-      height: calc(100vh - 60px);
-      border: 1px solid #ccc;
-      margin-top: 10px;
-    }
+      #pdf-viewer {
+          width: 100vw;
+          height: 100vh;
+          position: fixed;
+          top: 0;
+          left: 0;
+          display: none;
+      }
+
+      #upload-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+      }
+
+      .viewer-active #upload-container {
+          display: none;
+      }
+
+      .viewer-active #pdf-viewer {
+          display: block;
+      }
+      #pdf-container {
+        overflow: scroll;
+        max-height: 100vh;
+        width: 98vw;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px 0;
+      }
+
+      canvas#the-canvas {
+        margin-bottom: 20px; /* Add space between pages */
+      }
   </style>
 </head>
 <body>
-  <h1>PDF Uploader and Viewer</h1>
-  <button id="uploadBtn">Upload PDF</button>
-  <div id="pdfContainer">
-    <!-- PDF will be loaded here as an iframe -->
+  <div id="pdf-container">
+    <canvas id="the-canvas"></canvas>
   </div>
-  <script>
-    // Renderer process code
-    const uploadBtn = document.getElementById('uploadBtn');
-    const pdfContainer = document.getElementById('pdfContainer');
-
-    uploadBtn.addEventListener('click', async () => {
-      const filePath = await window.electronAPI.openFile();
-      if (filePath) {
-        pdfContainer.innerHTML = `<iframe src="file://${filePath}" width="100%" height="100%"></iframe>`;
-      } else {
-        alert('No PDF selected.');
-      }
-    });
-  </script>
 </body>
-</html> 
+<script type="module" src="main.js"></script>
+</html>
