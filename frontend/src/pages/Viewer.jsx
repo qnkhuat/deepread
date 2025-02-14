@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Document, Page, pdfjs } from 'react-pdf';
+import {useState} from 'react';
+import {useLocation, useNavigate} from 'react-router-dom';
+import {Document, Page, pdfjs} from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
 // Set the worker source
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-  ).toString();;
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();;
 
 function Viewer() {
   const location = useLocation();
@@ -19,7 +19,7 @@ function Viewer() {
   const [pdfUrl, setPdfUrl] = useState(null);
   const [selection, setSelection] = useState({
     text: '',
-    position: { x: 0, y: 0 },
+    position: {x: 0, y: 0},
     visible: false
   });
 
@@ -27,11 +27,11 @@ function Viewer() {
     if (file?.type === 'application/pdf') {
       const url = URL.createObjectURL(file);
       setPdfUrl(url);
-      
+
       // Send file to backend
       const formData = new FormData();
       formData.append('file', file);
-      
+
       try {
         const response = await fetch('http://localhost:8000/chat', {
           method: 'POST',
@@ -39,20 +39,20 @@ function Viewer() {
         });
         const data = await response.json();
         console.log('Upload response:', data);
-        
+
         // Add the summary to chat messages
-        if (data.summary) {
+        if (data.message) {
           setMessages([
             ...messages,
-            { text: 'Here\'s a summary of the document:', sender: 'bot' },
-            { text: data.summary, sender: 'bot' }
+            {text: 'Here\'s a summary of the document:', sender: 'bot'},
+            {text: data.message, sender: 'bot'}
           ]);
         }
       } catch (error) {
         console.error('Error uploading file:', error);
         setMessages([
           ...messages,
-          { text: 'Error processing the document. Please try again.', sender: 'bot' }
+          {text: 'Error processing the document. Please try again.', sender: 'bot'}
         ]);
       }
     }
@@ -79,7 +79,7 @@ function Viewer() {
   // Update the drop zone render when no PDF
   if (!pdfUrl && !location.state?.pdfUrl) {
     return (
-      <div 
+      <div
         style={styles.dropZone}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -92,7 +92,7 @@ function Viewer() {
             onChange={handleFileInputChange}
             style={styles.fileInput}
           />
-          <button 
+          <button
             onClick={() => document.querySelector('input[type="file"]').click()}
             style={styles.uploadButton}
           >
@@ -105,7 +105,7 @@ function Viewer() {
 
   async function onDocumentLoadSuccess(document) {
     setNumPages(document.numPages);
-    
+
     // Extract text from all pages
     for (let i = 1; i <= document.numPages; i++) {
       const page = await document.getPage(i);
@@ -118,8 +118,8 @@ function Viewer() {
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
-    
-    setMessages([...messages, { text: inputMessage, sender: 'user' }]);
+
+    setMessages([...messages, {text: inputMessage, sender: 'user'}]);
     setInputMessage('');
     // TODO: Add LLM integration here
   };
@@ -130,27 +130,27 @@ function Viewer() {
       const selection = window.getSelection();
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
-      
+
       setSelection({
         text: selectedText,
-        position: { x: rect.left, y: rect.top - 40 }, // Position button above selection
+        position: {x: rect.left, y: rect.top - 40}, // Position button above selection
         visible: true
       });
     } else {
-      setSelection(prev => ({ ...prev, visible: false }));
+      setSelection(prev => ({...prev, visible: false}));
     }
   };
 
   const handleAddToChat = () => {
-    setMessages([...messages, { text: selection.text, sender: 'user' }]);
-    setSelection(prev => ({ ...prev, visible: false }));
+    setMessages([...messages, {text: selection.text, sender: 'user'}]);
+    setSelection(prev => ({...prev, visible: false}));
     window.getSelection().removeAllRanges();
   };
 
   return (
     <div style={styles.container}>
-      <div 
-        style={styles.documentContainer} 
+      <div
+        style={styles.documentContainer}
         onMouseUp={handleTextSelection}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -173,7 +173,7 @@ function Viewer() {
           onLoadSuccess={onDocumentLoadSuccess}
         >
           {Array.from(new Array(numPages), (el, index) => (
-            <Page 
+            <Page
               key={`page_${index + 1}`}
               pageNumber={index + 1}
               renderTextLayer={true}
@@ -185,8 +185,8 @@ function Viewer() {
       <div style={styles.chatSidebar}>
         <div style={styles.chatMessages}>
           {messages.map((message, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               style={{
                 ...styles.message,
                 ...(message.sender === 'user' ? styles.userMessage : styles.botMessage)
@@ -316,4 +316,4 @@ const styles = {
   },
 };
 
-export default Viewer; 
+export default Viewer;

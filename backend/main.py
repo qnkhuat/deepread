@@ -1,6 +1,7 @@
 import uvicorn
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 # Create Haystack pipeline for PDF processing and summarization
 from haystack import Pipeline
 from haystack.components.converters import PyPDFToDocument
@@ -39,6 +40,15 @@ indexing_pipeline.connect("prompt_builder", "generator")
 
 
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Add your frontend URL here
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 async def root():
