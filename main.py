@@ -14,9 +14,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 async def read_root():
     return FileResponse("index.html")
 
-@app.get("/main.js")
-async def serve_js():
-    return FileResponse("main.js")
+
 
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
@@ -34,3 +32,6 @@ async def upload_pdf(file: UploadFile = File(...)):
 
 # Mount the uploads directory after the upload endpoint
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+# Mount the viewer directory to serve static files
+app.mount("/viewer", StaticFiles(directory="viewer"), name="viewer")
