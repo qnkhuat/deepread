@@ -43,7 +43,7 @@ function Viewer() {
         });
         const fileData = await fileResponse.json();
         setPdfContent(fileData.content);
-        messages.push({content: `Summarize the following paper: ${fileData.content}`, role: 'user'});
+        messages.push({content: `Summarize the following paper: ${fileData.content}`, role: 'user', hide: true});
 
         // Request summary from chat endpoint
         const response = await fetch('http://localhost:8000/chat', {
@@ -107,8 +107,7 @@ function Viewer() {
       >
       <div style={styles.dropZoneContent}>
       <p>Drop a PDF file here or</p>
-      <input
-      type="file"
+      <input type="file"
       accept="application/pdf"
       onChange={handleFileInputChange}
       style={styles.fileInput}
@@ -141,7 +140,6 @@ function Viewer() {
 
     setMessages([...messages, {content: inputMessage, role: 'user'}]);
     setInputMessage('');
-    // TODO: Add LLM integration here
   };
 
   const handleTextSelection = () => {
@@ -204,7 +202,7 @@ function Viewer() {
     </div>
     <div style={styles.chatSidebar}>
     <div style={styles.chatMessages}>
-    {messages.map((message, index) => (
+    {messages.filter(message => !message.hide).map((message, index) => (
       <div
       key={index}
       style={{

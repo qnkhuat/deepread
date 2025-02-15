@@ -14,27 +14,6 @@ from haystack.utils import Secret
 import pymupdf4llm
 from haystack.dataclasses import ChatMessage
 
-TEMPLATES = {
-    "summarize_paper": """
-    You are an AI assistant that summarizes academic papers concisely. Given a research paper, generate a structured summary that includes:
-    Objective: What is the paper about?
-    Key Findings: The most important results and conclusions.
-    Methods: A brief mention of the approach or methodology.
-    Significance: Why the findings matter.
-
-    Keep the summary clear, precise. Avoid unnecessary details and focus on the core insights.
-
-    {% for document in documents %}
-    {{ document.content }}
-    {% endfor %}
-    """,
-    "chat": """
-    You are a helpful AI assistant. Please respond to the following message:
-
-    User message: {{ message }}
-    """
-}
-
 def create_chat_generator(model_name):
     if model_name.startswith("gpt"):
         assert Secret.from_env_var("OPENAI_API_KEY") is not None, "OPENAI_API_KEY is not set"
@@ -51,9 +30,7 @@ CHAT_GENERATORS = {}
 def get_chat_generator(model_name):
     if model_name not in CHAT_GENERATORS:
         CHAT_GENERATORS[model_name] = create_chat_generator(model_name)
-        return CHAT_GENERATORS[model_name]
-    else:
-        return CHAT_GENERATORS[model_name]
+    return CHAT_GENERATORS[model_name]
 
 app = FastAPI()
 
@@ -67,7 +44,7 @@ app.add_middleware(
         )
 
 def to_chat_message(message):
-    return ChatMessage.from_dict({"name": None} | message)
+    return ChatMessage.from_dict({"role": message["role"], "content": message["content"], "name": None})
 
 @app.get("/")
 async def root():
