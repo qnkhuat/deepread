@@ -98,32 +98,6 @@ function Viewer() {
     e.preventDefault();
   };
 
-  // Update the drop zone render when no PDF
-  if (!pdfUrl) {
-    return (
-      <div
-        style={styles.dropZone}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-      >
-        <div style={styles.dropZoneContent}>
-          <p>Drop a PDF file here or</p>
-          <input type="file"
-            accept="application/pdf"
-            onChange={handleFileInputChange}
-            style={styles.fileInput}
-          />
-          <button
-            onClick={() => document.querySelector('input[type="file"]').click()}
-            style={styles.uploadButton}
-          >
-            Choose File
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   async function onDocumentLoadSuccess(document) {
     setNumPages(document.numPages);
 
@@ -166,48 +140,101 @@ function Viewer() {
     window.getSelection().removeAllRanges();
   };
 
+  const renderTopBar = () => (
+    <div style={styles.topBar}>
+      <div style={styles.topBarLeft}>
+        {/* Add other left-aligned items here */}
+      </div>
+      <div style={styles.topBarRight}>
+        <select 
+          value={selectedModel}
+          onChange={(e) => setSelectedModel(e.target.value)}
+          style={styles.modelSelect}
+        >
+          <option value="qwen2.5">Qwen 2.5</option>
+          <option value="gpt-4o-mini">GPT-4o-mini</option>
+        </select>
+      </div>
+    </div>
+  );
+
+  const renderContent = () => {
+    if (!pdfUrl) {
+      return (
+        <div
+          style={styles.dropZone}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+        >
+          <div style={styles.dropZoneContent}>
+            <p>Drop a PDF file here or</p>
+            <input type="file"
+              accept="application/pdf"
+              onChange={handleFileInputChange}
+              style={styles.fileInput}
+            />
+            <button
+              onClick={() => document.querySelector('input[type="file"]').click()}
+              style={styles.uploadButton}
+            >
+              Choose File
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={styles.mainContent}>
+        <div
+          style={styles.documentContainer}
+          onMouseUp={handleTextSelection}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+        >
+          {selection.visible && (
+            <button
+              onClick={handleAddToChat}
+              style={{
+                ...styles.addToChatButton,
+                position: 'fixed',
+                left: `${selection.position.x}px`,
+                top: `${selection.position.y}px`,
+              }}
+            >
+              Add to chat
+            </button>
+          )}
+          <Document
+            file={pdfUrl}
+            onLoadSuccess={onDocumentLoadSuccess}
+          >
+            {Array.from(new Array(numPages), (el, index) => (
+              <Page
+                scale={2}
+                key={`page_${index + 1}`}
+                pageNumber={index + 1}
+                renderTextLayer={true}
+                renderAnnotationLayer={true}
+                className="pdf-page"
+              />
+            ))}
+          </Document>
+        </div>
+        <Chat 
+          messages={messages}
+          inputMessage={inputMessage}
+          setInputMessage={setInputMessage}
+          handleSendMessage={handleSendMessage}
+        />
+      </div>
+    );
+  };
+
   return (
     <div style={styles.container}>
-      <div
-        style={styles.documentContainer}
-        onMouseUp={handleTextSelection}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-      >
-        {selection.visible && (
-          <button
-            onClick={handleAddToChat}
-            style={{
-              ...styles.addToChatButton,
-              position: 'fixed',
-              left: `${selection.position.x}px`,
-              top: `${selection.position.y}px`,
-            }}
-          >
-            Add to chat
-          </button>
-        )}
-        <Document
-          file={pdfUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-        >
-          {Array.from(new Array(numPages), (el, index) => (
-            <Page
-              scale={2}
-              key={`page_${index + 1}`}
-              pageNumber={index + 1}
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-            />
-          ))}
-        </Document>
-      </div>
-      <Chat 
-        messages={messages}
-        inputMessage={inputMessage}
-        setInputMessage={setInputMessage}
-        handleSendMessage={handleSendMessage}
-      />
+      {renderTopBar()}
+      {renderContent()}
     </div>
   );
 }
@@ -215,7 +242,7 @@ function Viewer() {
 const styles = {
   container: {
     display: 'flex',
-    flexDirection: 'row',
+    flexDirection: 'column',
     width: '100%',
     height: '100%',
     position: 'fixed',
@@ -228,8 +255,10 @@ const styles = {
     height: '100%',
     overflow: 'auto',
     display: 'flex',
-    justifyContent: 'center',
+    flexDirection: 'column',
+    alignItems: 'center',
     padding: '20px',
+    gap: '20px',
   },
   addToChatButton: {
     padding: '4px 8px',
@@ -248,7 +277,6 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     border: '3px dashed #ccc',
-    boxSizing: 'border-box',
     borderRadius: '8px',
     backgroundColor: '#f8f9fa',
     cursor: 'pointer',
@@ -270,6 +298,55 @@ const styles = {
     borderRadius: '4px',
     cursor: 'pointer',
   },
+  topBar: {
+    width: '95%',
+    height: '50px',
+    backgroundColor: '#f8f9fa',
+    borderBottom: '1px solid #dee2e6',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '0 20px',
+  },
+  topBarLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  topBarRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  modelSelect: {
+    padding: '8px 16px',
+    backgroundColor: '#007bff',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+  },
+  mainContent: {
+    display: 'flex',
+    flexDirection: 'row',
+    flex: 1,
+    overflow: 'hidden',
+  },
 };
+
+// Add this CSS somewhere in your stylesheet or create a new one
+const pageStyles = `
+  .pdf-page {
+    border: 1px solid #ccc;
+    box-shadow: 0 0 10px rgba(0,0,0,.2);
+    margin-bottom: 20px;
+  }
+`;
+
+// Add a style tag to the component
+const styleTag = document.createElement('style');
+styleTag.textContent = pageStyles;
+document.head.appendChild(styleTag);
 
 export default Viewer;
