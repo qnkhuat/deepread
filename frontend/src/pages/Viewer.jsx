@@ -3,6 +3,7 @@ import {useLocation, useNavigate} from 'react-router-dom';
 import {Document, Page, pdfjs} from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
+import ReactMarkdown from 'react-markdown';
 
 // Set the worker source
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -33,20 +34,22 @@ function Viewer() {
       formData.append('file', file);
 
       try {
-        const response = await fetch('http://localhost:8000/chat', {
-          method: 'POST',
-          body: formData,
-        });
-        const data = await response.json();
-        console.log('Upload response:', data);
+        // Get a summarization of the document
+        if (false) {
+          const response = await fetch('http://localhost:8000/chat', {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await response.json();
 
-        // Add the summary to chat messages
-        if (data.message) {
-          setMessages([
-            ...messages,
-            {text: 'Here\'s a summary of the document:', sender: 'bot'},
-            {text: data.message, sender: 'bot'}
-          ]);
+          // Add the summary to chat messages
+          if (data.message) {
+            setMessages([
+              ...messages,
+              {text: 'Here\'s a summary of the document:', sender: 'bot'},
+              {text: data.message, sender: 'bot'}
+            ]);
+          }
         }
       } catch (error) {
         console.error('Error uploading file:', error);
@@ -192,7 +195,7 @@ function Viewer() {
                 ...(message.sender === 'user' ? styles.userMessage : styles.botMessage)
               }}
             >
-              {message.text}
+              <ReactMarkdown>{message.text}</ReactMarkdown>
             </div>
           ))}
         </div>
@@ -245,6 +248,7 @@ const styles = {
     padding: '0.5rem 1rem',
     borderRadius: '8px',
     maxWidth: '80%',
+    overflow: 'auto',
   },
   userMessage: {
     backgroundColor: '#007bff',
