@@ -23,6 +23,8 @@ function Viewer() {
     position: {x: 0, y: 0},
     visible: false
   });
+  const [pdfContent, setPdfContent] = useState('');
+  const [selectedModel, setSelectedModel] = useState('qwen2.5');
 
   const handleFileUpload = async (file) => {
     if (file?.type === 'application/pdf') {
@@ -35,27 +37,43 @@ function Viewer() {
 
       try {
         // Get a summarization of the document
-        if (false) {
-          const response = await fetch('http://localhost:8000/chat', {
-            method: 'POST',
-            body: formData,
-          });
-          const data = await response.json();
+        const fileResponse = await fetch('http://localhost:8000/to_markdown', {
+          method: 'POST',
+          body: formData,
+        });
+        const fileData = await fileResponse.json();
+        setPdfContent(fileData.content);
+        messages.push({content: `Summarize the following paper: ${fileData.content}`, role: 'user'});
 
-          // Add the summary to chat messages
-          if (data.message) {
-            setMessages([
-              ...messages,
-              {text: 'Here\'s a summary of the document:', sender: 'bot'},
-              {text: data.message, sender: 'bot'}
-            ]);
-          }
+        // Request summary from chat endpoint
+        const response = await fetch('http://localhost:8000/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            messages: JSON.stringify(messages),
+            model_name: selectedModel
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to get chat response');
         }
-      } catch (error) {
-        console.error('Error uploading file:', error);
+
+        const data = await response.json();
+
+        // Add the summary to chat messages
         setMessages([
           ...messages,
-          {text: 'Error processing the document. Please try again.', sender: 'bot'}
+          {content: data.content, role: 'bot'}
+        ]);
+      } catch (error) {
+        console.error('Error processing file:', error);
+        setMessages([
+          ...messages,
+          {content: 'Error processing the document. Please try again.', role: 'bot'},
         ]);
       }
     }
@@ -83,25 +101,25 @@ function Viewer() {
   if (!pdfUrl && !location.state?.pdfUrl) {
     return (
       <div
-        style={styles.dropZone}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
+      style={styles.dropZone}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
       >
-        <div style={styles.dropZoneContent}>
-          <p>Drop a PDF file here or</p>
-          <input
-            type="file"
-            accept="application/pdf"
-            onChange={handleFileInputChange}
-            style={styles.fileInput}
-          />
-          <button
-            onClick={() => document.querySelector('input[type="file"]').click()}
-            style={styles.uploadButton}
-          >
-            Choose File
-          </button>
-        </div>
+      <div style={styles.dropZoneContent}>
+      <p>Drop a PDF file here or</p>
+      <input
+      type="file"
+      accept="application/pdf"
+      onChange={handleFileInputChange}
+      style={styles.fileInput}
+      />
+      <button
+      onClick={() => document.querySelector('input[type="file"]').click()}
+      style={styles.uploadButton}
+      >
+      Choose File
+      </button>
+      </div>
       </div>
     );
   }
@@ -114,7 +132,6 @@ function Viewer() {
       const page = await document.getPage(i);
       const textContent = await page.getTextContent();
       const pageText = textContent.items.map(item => item.str).join(' ');
-      console.log(`Page ${i} text:`, pageText);
     }
   }
 
@@ -122,7 +139,7 @@ function Viewer() {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
-    setMessages([...messages, {text: inputMessage, sender: 'user'}]);
+    setMessages([...messages, {content: inputMessage, role: 'user'}]);
     setInputMessage('');
     // TODO: Add LLM integration here
   };
@@ -145,73 +162,73 @@ function Viewer() {
   };
 
   const handleAddToChat = () => {
-    setMessages([...messages, {text: selection.text, sender: 'user'}]);
+    setMessages([...messages, {content: selection.text, role: 'user'}]);
     setSelection(prev => ({...prev, visible: false}));
     window.getSelection().removeAllRanges();
   };
 
   return (
     <div style={styles.container}>
-      <div
-        style={styles.documentContainer}
-        onMouseUp={handleTextSelection}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
+    <div
+    style={styles.documentContainer}
+    onMouseUp={handleTextSelection}
+    onDrop={handleDrop}
+    onDragOver={handleDragOver}
+    >
+    {selection.visible && (
+      <button
+      onClick={handleAddToChat}
+      style={{
+        ...styles.addToChatButton,
+          position: 'fixed',
+          left: `${selection.position.x}px`,
+          top: `${selection.position.y}px`,
+      }}
       >
-        {selection.visible && (
-          <button
-            onClick={handleAddToChat}
-            style={{
-              ...styles.addToChatButton,
-              position: 'fixed',
-              left: `${selection.position.x}px`,
-              top: `${selection.position.y}px`,
-            }}
-          >
-            Add to chat
-          </button>
-        )}
-        <Document
-          file={pdfUrl || location.state.pdfUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-        >
-          {Array.from(new Array(numPages), (el, index) => (
-            <Page
-              key={`page_${index + 1}`}
-              pageNumber={index + 1}
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-            />
-          ))}
-        </Document>
+      Add to chat
+      </button>
+    )}
+    <Document
+    file={pdfUrl || location.state.pdfUrl}
+    onLoadSuccess={onDocumentLoadSuccess}
+    >
+    {Array.from(new Array(numPages), (el, index) => (
+      <Page
+      key={`page_${index + 1}`}
+      pageNumber={index + 1}
+      renderTextLayer={true}
+      renderAnnotationLayer={true}
+      />
+    ))}
+    </Document>
+    </div>
+    <div style={styles.chatSidebar}>
+    <div style={styles.chatMessages}>
+    {messages.map((message, index) => (
+      <div
+      key={index}
+      style={{
+        ...styles.message,
+          ...(message.role === 'user' ? styles.userMessage : styles.botMessage)
+      }}
+      >
+      <ReactMarkdown>{message.content}</ReactMarkdown>
       </div>
-      <div style={styles.chatSidebar}>
-        <div style={styles.chatMessages}>
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              style={{
-                ...styles.message,
-                ...(message.sender === 'user' ? styles.userMessage : styles.botMessage)
-              }}
-            >
-              <ReactMarkdown>{message.text}</ReactMarkdown>
-            </div>
-          ))}
-        </div>
-        <form style={styles.inputForm} onSubmit={handleSendMessage}>
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            style={styles.input}
-            placeholder="Ask a question..."
-          />
-          <button type="submit" style={styles.sendButton}>
-            Send
-          </button>
-        </form>
-      </div>
+    ))}
+    </div>
+    <form style={styles.inputForm} onSubmit={handleSendMessage}>
+    <input
+    type="text"
+    value={inputMessage}
+    onChange={(e) => setInputMessage(e.target.value)}
+    style={styles.input}
+    placeholder="Ask a question..."
+    />
+    <button type="submit" style={styles.sendButton}>
+    Send
+    </button>
+    </form>
+    </div>
     </div>
   );
 }
