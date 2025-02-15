@@ -17,12 +17,16 @@ function Chat({ messages, inputMessage, setInputMessage, handleSendMessage }) {
         ))}
       </div>
       <form style={styles.inputForm} onSubmit={handleSendMessage}>
-        <input
-          type="text"
+        <textarea
           value={inputMessage}
           onChange={(e) => setInputMessage(e.target.value)}
           style={styles.input}
           placeholder="Ask a question..."
+          rows="1"
+          onInput={(e) => {
+            e.target.style.height = 'auto';
+            e.target.style.height = e.target.scrollHeight + 'px';
+          }}
         />
         <button type="submit" style={styles.sendButton}>
           Send
@@ -73,6 +77,10 @@ const styles = {
     borderRadius: '4px',
     border: '1px solid #ccc',
     marginRight: '0.5rem',
+    resize: 'none',
+    minHeight: '38px',
+    maxHeight: '150px',
+    overflow: 'auto',
   },
   sendButton: {
     padding: '0.5rem 1rem',

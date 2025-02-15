@@ -161,7 +161,7 @@ function Viewer() {
   };
 
   const handleAddToChat = () => {
-    setMessages([...messages, {content: selection.text, role: 'user'}]);
+    setInputMessage(selection.text);
     setSelection(prev => ({...prev, visible: false}));
     window.getSelection().removeAllRanges();
   };
@@ -193,6 +193,7 @@ function Viewer() {
         >
           {Array.from(new Array(numPages), (el, index) => (
             <Page
+              scale={2}
               key={`page_${index + 1}`}
               pageNumber={index + 1}
               renderTextLayer={true}
