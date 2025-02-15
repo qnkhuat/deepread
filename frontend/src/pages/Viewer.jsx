@@ -11,9 +11,9 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();;
 
+const BACKEND_URL = 'http://localhost:8000';
+
 function Viewer() {
-  const location = useLocation();
-  const navigate = useNavigate();
   const [numPages, setNumPages] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -37,7 +37,7 @@ function Viewer() {
 
       try {
         // Get a summarization of the document
-        const fileResponse = await fetch('http://localhost:8000/to_markdown', {
+        const fileResponse = await fetch(`${BACKEND_URL}/to_markdown`, {
           method: 'POST',
           body: formData,
         });
@@ -46,7 +46,7 @@ function Viewer() {
         messages.push({content: `Summarize the following paper: ${fileData.content}`, role: 'user', hide: true});
 
         // Request summary from chat endpoint
-        const response = await fetch('http://localhost:8000/chat', {
+        const response = await fetch(`${BACKEND_URL}/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -98,27 +98,27 @@ function Viewer() {
   };
 
   // Update the drop zone render when no PDF
-  if (!pdfUrl && !location.state?.pdfUrl) {
+  if (!pdfUrl) {
     return (
       <div
-      style={styles.dropZone}
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
+        style={styles.dropZone}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
       >
-      <div style={styles.dropZoneContent}>
-      <p>Drop a PDF file here or</p>
-      <input type="file"
-      accept="application/pdf"
-      onChange={handleFileInputChange}
-      style={styles.fileInput}
-      />
-      <button
-      onClick={() => document.querySelector('input[type="file"]').click()}
-      style={styles.uploadButton}
-      >
-      Choose File
-      </button>
-      </div>
+        <div style={styles.dropZoneContent}>
+          <p>Drop a PDF file here or</p>
+          <input type="file"
+            accept="application/pdf"
+            onChange={handleFileInputChange}
+            style={styles.fileInput}
+          />
+          <button
+            onClick={() => document.querySelector('input[type="file"]').click()}
+            style={styles.uploadButton}
+          >
+            Choose File
+          </button>
+        </div>
       </div>
     );
   }
@@ -167,66 +167,66 @@ function Viewer() {
 
   return (
     <div style={styles.container}>
-    <div
-    style={styles.documentContainer}
-    onMouseUp={handleTextSelection}
-    onDrop={handleDrop}
-    onDragOver={handleDragOver}
-    >
-    {selection.visible && (
-      <button
-      onClick={handleAddToChat}
-      style={{
-        ...styles.addToChatButton,
-          position: 'fixed',
-          left: `${selection.position.x}px`,
-          top: `${selection.position.y}px`,
-      }}
-      >
-      Add to chat
-      </button>
-    )}
-    <Document
-    file={pdfUrl || location.state.pdfUrl}
-    onLoadSuccess={onDocumentLoadSuccess}
-    >
-    {Array.from(new Array(numPages), (el, index) => (
-      <Page
-      key={`page_${index + 1}`}
-      pageNumber={index + 1}
-      renderTextLayer={true}
-      renderAnnotationLayer={true}
-      />
-    ))}
-    </Document>
-    </div>
-    <div style={styles.chatSidebar}>
-    <div style={styles.chatMessages}>
-    {messages.filter(message => !message.hide).map((message, index) => (
       <div
-      key={index}
-      style={{
-        ...styles.message,
-          ...(message.role === 'user' ? styles.userMessage : styles.botMessage)
-      }}
+        style={styles.documentContainer}
+        onMouseUp={handleTextSelection}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
       >
-      <ReactMarkdown>{message.content}</ReactMarkdown>
+        {selection.visible && (
+          <button
+            onClick={handleAddToChat}
+            style={{
+              ...styles.addToChatButton,
+              position: 'fixed',
+              left: `${selection.position.x}px`,
+              top: `${selection.position.y}px`,
+            }}
+          >
+            Add to chat
+          </button>
+        )}
+        <Document
+          file={pdfUrl}
+          onLoadSuccess={onDocumentLoadSuccess}
+        >
+          {Array.from(new Array(numPages), (el, index) => (
+            <Page
+              key={`page_${index + 1}`}
+              pageNumber={index + 1}
+              renderTextLayer={true}
+              renderAnnotationLayer={true}
+            />
+          ))}
+        </Document>
       </div>
-    ))}
-    </div>
-    <form style={styles.inputForm} onSubmit={handleSendMessage}>
-    <input
-    type="text"
-    value={inputMessage}
-    onChange={(e) => setInputMessage(e.target.value)}
-    style={styles.input}
-    placeholder="Ask a question..."
-    />
-    <button type="submit" style={styles.sendButton}>
-    Send
-    </button>
-    </form>
-    </div>
+      <div style={styles.chatSidebar}>
+        <div style={styles.chatMessages}>
+          {messages.filter(message => !message.hide).map((message, index) => (
+            <div
+              key={index}
+              style={{
+                ...styles.message,
+                ...(message.role === 'user' ? styles.userMessage : styles.botMessage)
+              }}
+            >
+              <ReactMarkdown>{message.content}</ReactMarkdown>
+            </div>
+          ))}
+        </div>
+        <form style={styles.inputForm} onSubmit={handleSendMessage}>
+          <input
+            type="text"
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            style={styles.input}
+            placeholder="Ask a question..."
+          />
+          <button type="submit" style={styles.sendButton}>
+            Send
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
