@@ -10,7 +10,34 @@ import Chat from '../components/Chat';
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url,
-).toString();;
+).toString();
+
+function systemPrompt(paperContent) {
+  return {
+    content: `
+You are provided with the full content of a research paper uploaded by the user in PDF format.
+The content of the paper is as follows:
+    ${paperContent}
+
+Today's date is ${new Date()}.
+
+Your tasks are as follows:
+1. **Understanding the Paper:** Carefully read and interpret the provided paper content.
+2. **Responding to the User Instruction:**
+   - **If the instruction requests a summary:** Generate a clear and concise summary of the paper. Highlight key points, methodology, findings, and conclusions. If possible, reference sections or page numbers (e.g., [page:3]) to support your summary.
+   - **If the instruction is a question about the paper:** Answer the question using only the information provided in the paper. Make sure your answer is accurate and, when relevant, include citations from the paper’s sections or pages.
+   - **If the instruction requests both summary and questions:** Address each part separately in a well-organized manner.
+3. **Formatting Guidelines:**
+   - Structure your response in clear paragraphs. Use bullet points if listing key aspects.
+   - Keep the language professional, precise, and in the same language as the user’s instruction.
+   - Avoid including external information not present in the paper.
+
+Ensure that your final answer is detailed, insightful, and directly based on the provided paper content.
+  `,
+    role: "system",
+    hide: true
+  }
+}
 
 const BACKEND_URL = 'http://localhost:8000';
 
@@ -44,7 +71,8 @@ function Viewer() {
         });
         const fileData = await fileResponse.json();
         setPdfContent(fileData.content);
-        messages.push({content: `Summarize the following paper: ${fileData.content}`, role: 'user', hide: true});
+        messages.push(systemPrompt(fileData.content));
+        messages.push({content: `Please summarize the paper.`, role: 'user', hide: true});
 
         // Request summary from chat endpoint
         const response = await fetch(`${BACKEND_URL}/chat`, {
