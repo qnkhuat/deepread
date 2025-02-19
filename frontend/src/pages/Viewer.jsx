@@ -68,13 +68,13 @@ function Viewer() {
         // Add the summary to chat messages
         setMessages([
           ...messages,
-          {content: data.content, role: 'bot'}
+          {content: data.content, role: 'assistant'}
         ]);
       } catch (error) {
         console.error('Error processing file:', error);
         setMessages([
           ...messages,
-          {content: 'Error processing the document. Please try again.', role: 'bot'},
+          {content: 'Error processing the document. Please try again.', role: 'assistant'},
         ]);
       }
     }
@@ -109,12 +109,41 @@ function Viewer() {
     }
   }
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
-    setMessages([...messages, {content: inputMessage, role: 'user'}]);
+    const newUserMessage = {content: inputMessage, role: 'user'};
+    const newMessages = [...messages, newUserMessage];
+    setMessages(newMessages);
     setInputMessage('');
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          messages: JSON.stringify(newMessages),
+          model_name: selectedModel
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to get chat response');
+      }
+
+      const data = await response.json();
+      setMessages(prevMessages => [...prevMessages, {content: data.content, role: 'assistant'}]);
+    } catch (error) {
+      console.error('Error getting chat response:', error);
+      setMessages(prevMessages => [...prevMessages, {
+        content: 'Sorry, there was an error processing your message. Please try again.',
+        role: 'assistant'
+      }]);
+    }
   };
 
   const handleTextSelection = () => {
@@ -146,7 +175,7 @@ function Viewer() {
         {/* Add other left-aligned items here */}
       </div>
       <div style={styles.topBarRight}>
-        <select 
+        <select
           value={selectedModel}
           onChange={(e) => setSelectedModel(e.target.value)}
           style={styles.modelSelect}
@@ -221,7 +250,7 @@ function Viewer() {
             ))}
           </Document>
         </div>
-        <Chat 
+        <Chat
           messages={messages}
           inputMessage={inputMessage}
           setInputMessage={setInputMessage}
@@ -299,7 +328,6 @@ const styles = {
     cursor: 'pointer',
   },
   topBar: {
-    width: '95%',
     height: '50px',
     backgroundColor: '#f8f9fa',
     borderBottom: '1px solid #dee2e6',
