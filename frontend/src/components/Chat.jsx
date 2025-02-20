@@ -23,6 +23,12 @@ function Chat({ messages, inputMessage, setInputMessage, handleSendMessage }) {
           style={styles.input}
           placeholder="Ask a question..."
           rows="1"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSendMessage(e);
+            }
+          }}
           onInput={(e) => {
             e.target.style.height = 'auto';
             e.target.style.height = e.target.scrollHeight + 'px';
