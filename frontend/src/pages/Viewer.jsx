@@ -210,6 +210,7 @@ function Viewer() {
         >
           <option value="qwen2.5">Qwen 2.5</option>
           <option value="gpt-4o-mini">GPT-4o-mini</option>
+          <option value="grok-2-1212">Grok 2 12 12</option>
         </select>
       </div>
     </div>

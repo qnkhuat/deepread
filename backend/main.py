@@ -15,10 +15,13 @@ import pymupdf4llm
 from haystack.dataclasses import ChatMessage
 
 def create_chat_generator(model_name):
-    if model_name.startswith("gpt"):
-        assert Secret.from_env_var("OPENAI_API_KEY") is not None, "OPENAI_API_KEY is not set"
+    if model_name.startswith("gpt") or model_name.startswith("grok"):
+        api_base_url = "https://api.x.ai/v1" if model_name.startswith("grok") else None
+        api_key = Secret.from_env_var("OPENAI_API_KEY") if model_name.startswith("gpt") else Secret.from_env_var("GROK_API_KEY")
+        assert api_key is not None, "OPENAI_API_KEY is not set"
         return OpenAIChatGenerator(
-            api_key=Secret.from_env_var("OPENAI_API_KEY"),
+            api_key=api_key,
+            api_base_url = api_base_url,
             model=model_name,
         )
     else:
