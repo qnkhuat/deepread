@@ -1,13 +1,20 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { SettingsProvider } from './contexts/SettingsContext';
+import TopBar from './components/TopBar';
 import Viewer from './pages/Viewer';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Viewer />} />
-      </Routes>
-    </Router>
+    <SettingsProvider>
+      <div className="app" style={{ 
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
+        <TopBar />
+        <Viewer />
+      </div>
+    </SettingsProvider>
   );
 }
 

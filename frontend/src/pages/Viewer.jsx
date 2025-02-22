@@ -5,6 +5,7 @@ import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import ReactMarkdown from 'react-markdown';
 import Chat from '../components/Chat';
+import { useSettings } from '../contexts/SettingsContext';
 
 // Set the worker source
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -25,11 +26,11 @@ Your tasks are as follows:
 1. **Understanding the Paper:** Carefully read and interpret the provided paper content.
 2. **Responding to the User Instruction:**
    - **If the instruction requests a summary:** Generate a clear and concise summary of the paper. Highlight key points, methodology, findings, and conclusions. If possible, reference sections or page numbers (e.g., [page:3]) to support your summary.
-   - **If the instruction is a question about the paper:** Answer the question using only the information provided in the paper. Make sure your answer is accurate and, when relevant, include citations from the paper’s sections or pages.
+   - **If the instruction is a question about the paper:** Answer the question using only the information provided in the paper. Make sure your answer is accurate and, when relevant, include citations from the paper's sections or pages.
    - **If the instruction requests both summary and questions:** Address each part separately in a well-organized manner.
 3. **Formatting Guidelines:**
    - Structure your response in clear paragraphs. Use bullet points if listing key aspects.
-   - Keep the language professional, precise, and in the same language as the user’s instruction.
+   - Keep the language professional, precise, and in the same language as the user's instruction.
    - Avoid including external information not present in the paper.
 
 Ensure that your final answer is detailed, insightful, and directly based on the provided paper content.
@@ -52,7 +53,7 @@ function Viewer() {
     visible: false
   });
   const [pdfContent, setPdfContent] = useState('');
-  const [selectedModel, setSelectedModel] = useState('qwen2.5');
+  const { settings } = useSettings();
 
   const handleFileUpload = async (file) => {
     if (file?.type === 'application/pdf') {
@@ -82,7 +83,7 @@ function Viewer() {
           },
           body: new URLSearchParams({
             messages: JSON.stringify(messages),
-            model_name: selectedModel
+            model_name: settings.model
           })
         });
 
@@ -154,7 +155,7 @@ function Viewer() {
         },
         body: new URLSearchParams({
           messages: JSON.stringify(newMessages),
-          model_name: selectedModel
+          model_name: settings.model
         })
       });
 
@@ -196,25 +197,6 @@ function Viewer() {
     setSelection(prev => ({...prev, visible: false}));
     window.getSelection().removeAllRanges();
   };
-
-  const renderTopBar = () => (
-    <div style={styles.topBar}>
-      <div style={styles.topBarLeft}>
-        {/* Add other left-aligned items here */}
-      </div>
-      <div style={styles.topBarRight}>
-        <select
-          value={selectedModel}
-          onChange={(e) => setSelectedModel(e.target.value)}
-          style={styles.modelSelect}
-        >
-          <option value="qwen2.5">Qwen 2.5</option>
-          <option value="gpt-4o-mini">GPT-4o-mini</option>
-          <option value="grok-2-1212">Grok 2 12 12</option>
-        </select>
-      </div>
-    </div>
-  );
 
   const renderContent = () => {
     if (!pdfUrl) {
@@ -291,7 +273,6 @@ function Viewer() {
 
   return (
     <div style={styles.container}>
-      {renderTopBar()}
       {renderContent()}
     </div>
   );
@@ -302,10 +283,8 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     width: '100%',
-    height: '100%',
-    position: 'fixed',
-    top: 0,
-    left: 0,
+    flex: 1,
+    position: 'relative',
     overflow: 'hidden',
   },
   documentContainer: {
