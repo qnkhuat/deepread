@@ -9,13 +9,14 @@ function Chat({ messages, inputMessage, setInputMessage, handleSendMessage }) {
           {messages.filter(message => !message.hide).map((message, index) => (
             <Paper
               key={index}
-              shadow="sm"
-              p="sm"
-              radius="md"
               style={{
+                marginTop: 0,
+                marginBottom: 0,
+                padding: '10px 16px',
+                borderRadius: '8px',
                 maxWidth: '80%',
                 marginLeft: message.role === 'user' ? 'auto' : 0,
-                backgroundColor: message.role === 'user' ? 'var(--mantine-primary-color)' : 'var(--mantine-color-gray-1)',
+                backgroundColor: message.role === 'user' ? '#007bff' : 'white',
                 color: message.role === 'user' ? 'white' : 'inherit'
               }}
             >

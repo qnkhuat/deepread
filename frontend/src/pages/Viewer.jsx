@@ -4,7 +4,6 @@ import {Document, Page, pdfjs} from 'react-pdf';
 import {Grid, Stack, Button, Center, Text, Paper} from '@mantine/core';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import ReactMarkdown from 'react-markdown';
 import Chat from '../components/Chat';
 import { useSettings } from '../contexts/SettingsContext';
 
@@ -66,7 +65,7 @@ function Viewer() {
 
       try {
         // Get a summarization of the document
-        const fileResponse = await fetch(`${BACKEND_URL}/to_markdown`, {
+        const fileResponse = await fetch(`${BACKEND_URL}/api/to_markdown`, {
           method: 'POST',
           body: formData,
         });
@@ -76,7 +75,7 @@ function Viewer() {
         messages.push({content: `Please summarize the paper.`, role: 'user', hide: true});
 
         // Request summary from chat endpoint
-        const response = await fetch(`${BACKEND_URL}/chat`, {
+        const response = await fetch(`${BACKEND_URL}/api/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -142,14 +141,6 @@ function Viewer() {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
-    const modelConfig = settings.model;
-    const currentConfig = settings.apiConfigs[settings.model];
-    
-    // Check if configuration is required but missing
-    if (modelConfig.fields.some(f => f.required) && !currentConfig) {
-      return;
-    }
-
     const newUserMessage = {content: inputMessage, role: 'user'};
     const newMessages = [...messages, newUserMessage];
     setMessages(newMessages);
@@ -164,7 +155,6 @@ function Viewer() {
         body: new URLSearchParams({
           messages: JSON.stringify(newMessages),
           model_name: settings.model,
-          api_config: JSON.stringify(settings.apiConfigs[settings.model])
         })
       });
 

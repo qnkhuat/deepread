@@ -9,7 +9,6 @@ function TopBar() {
     <Container fluid h="100%">
       <Group justify="space-between" h="100%">
         <Group>
-          <span>TopBar</span>
         </Group>
         <Group>
           <Select

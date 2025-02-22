@@ -53,7 +53,7 @@ def to_chat_message(message):
 async def root():
     return {"message": "Hello World"}
 
-@app.post("/to_markdown")
+@app.post("/api/to_markdown")
 async def convert_pdf_to_markdown(file: UploadFile = File(...)):
     try:
         if not file.filename.endswith('.pdf'):
@@ -81,7 +81,7 @@ async def convert_pdf_to_markdown(file: UploadFile = File(...)):
             content={"message": f"An error occurred: {str(e)}"}
         )
 
-@app.post("/chat")
+@app.post("/api/chat")
 async def chat(
     messages: str = Form(...),
     model_name: str = Form(...)
