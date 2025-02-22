@@ -1,7 +1,14 @@
 import {useState} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {Document, Page, pdfjs} from 'react-pdf';
-import {Grid, Stack, Button, Center, Text, Paper} from '@mantine/core';
+import { 
+  Box,
+  Stack,
+  Button,
+  Typography,
+  Paper,
+  Container
+} from '@mui/material';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import Chat from '../components/Chat';
@@ -198,25 +205,32 @@ function Viewer() {
   };
 
   const renderDropZone = () => (
-    <Center h="100vh" style={{ marginTop: -50 }}>
+    <Box 
+      sx={{ 
+        height: 'calc(100vh - 50px)', 
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
       <Paper
-        withBorder
-        p="xl"
-        style={{ 
+        elevation={0}
+        sx={{ 
           border: '3px dashed #ccc',
           cursor: 'pointer',
-          backgroundColor: '#f8f9fa',
+          bgcolor: 'grey.50',
           width: '100%',
           height: '100%',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          p: 4
         }}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
-        <Stack align="center" gap="md">
-          <Text>Drop a PDF file here or</Text>
+        <Stack spacing={2} alignItems="center">
+          <Typography>Drop a PDF file here or</Typography>
           <input
             type="file"
             accept="application/pdf"
@@ -224,13 +238,14 @@ function Viewer() {
             style={{ display: 'none' }}
           />
           <Button
+            variant="contained"
             onClick={() => document.querySelector('input[type="file"]').click()}
           >
             Choose File
           </Button>
         </Stack>
       </Paper>
-    </Center>
+    </Box>
   );
 
   const renderContent = () => {
@@ -239,14 +254,14 @@ function Viewer() {
     }
 
     return (
-      <div style={{ 
+      <Box sx={{ 
         display: 'flex', 
         height: 'calc(100vh - 50px)',
         gap: '1px',
-        backgroundColor: '#e9ecef' // Subtle divider color between columns
+        bgcolor: 'grey.100'
       }}>
         {/* PDF Viewer Column */}
-        <div style={{ 
+        <Box sx={{ 
           flex: '1 1 75%',
           height: '100%',
           overflow: 'hidden'
@@ -255,28 +270,29 @@ function Viewer() {
             onMouseUp={handleTextSelection}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
-            style={{ 
+            sx={{ 
               height: '100%',
               overflow: 'auto',
-              padding: '1rem',
+              p: 2,
               position: 'relative'
             }}
           >
             {selection.visible && (
               <Button
+                variant="contained"
+                size="small"
                 onClick={handleAddToChat}
-                style={{
+                sx={{
                   position: 'fixed',
                   left: `${selection.position.x}px`,
                   top: `${selection.position.y}px`,
                   zIndex: 1000,
                 }}
-                size="xs"
               >
                 Add to chat
               </Button>
             )}
-            <Stack align="center" gap="md" style={{ minWidth: 'fit-content' }}>
+            <Stack spacing={2} alignItems="center" sx={{ minWidth: 'fit-content' }}>
               <Document
                 file={pdfUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
@@ -294,18 +310,17 @@ function Viewer() {
               </Document>
             </Stack>
           </Paper>
-        </div>
+        </Box>
 
         {/* Chat Column */}
-        <div style={{ 
+        <Box sx={{ 
           flex: '1 1 25%',
           height: '100%',
           overflow: 'hidden'
         }}>
           <Paper 
-            p={0} 
-            withBorder 
-            style={{ 
+            elevation={1}
+            sx={{ 
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
@@ -319,15 +334,13 @@ function Viewer() {
               handleSendMessage={handleSendMessage}
             />
           </Paper>
-        </div>
-      </div>
+        </Box>
+      </Box>
     );
   };
 
   return (
-    <div style={{ height: '100%' }}>
-      {renderContent()}
-    </div>
+      renderContent()
   );
 }
 

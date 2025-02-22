@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 
+
 // Define default settings
 const DEFAULT_SETTINGS = {
   model: 'qwen2.5',
@@ -8,15 +9,7 @@ const DEFAULT_SETTINGS = {
 // Helper function to initialize settings from localStorage
 const initializeSettings = () => {
   const savedSettings = localStorage.getItem('settings');
-  if (savedSettings) {
-    try {
-      const parsedSettings = { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) };
-      return parsedSettings;
-    } catch (e) {
-      console.error('Failed to parse settings from localStorage:', e);
-    }
-  }
-  return DEFAULT_SETTINGS;
+  return { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings)};
 };
 
 const SettingsContext = createContext(null);
