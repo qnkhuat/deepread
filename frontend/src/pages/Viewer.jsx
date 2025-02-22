@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {Document, Page, pdfjs} from 'react-pdf';
+import {Grid, Stack, Button, Center, Text, Paper} from '@mantine/core';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import ReactMarkdown from 'react-markdown';
@@ -16,8 +17,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 function systemPrompt(paperContent) {
   return {
     content: `
-You are provided with the full content of a research paper uploaded by the user in PDF format.
-The content of the paper is as follows:
+You are provided with the full content of a research paper uploaded by the user in PDF format content of the paper is as follows:
     ${paperContent}
 
 Today's date is ${new Date()}.
@@ -53,7 +53,7 @@ function Viewer() {
     visible: false
   });
   const [pdfContent, setPdfContent] = useState('');
-  const { settings } = useSettings();
+  const { settings, updateSetting } = useSettings();
 
   const handleFileUpload = async (file) => {
     if (file?.type === 'application/pdf') {
@@ -142,6 +142,14 @@ function Viewer() {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
+    const modelConfig = settings.model;
+    const currentConfig = settings.apiConfigs[settings.model];
+    
+    // Check if configuration is required but missing
+    if (modelConfig.fields.some(f => f.required) && !currentConfig) {
+      return;
+    }
+
     const newUserMessage = {content: inputMessage, role: 'user'};
     const newMessages = [...messages, newUserMessage];
     setMessages(newMessages);
@@ -155,7 +163,8 @@ function Viewer() {
         },
         body: new URLSearchParams({
           messages: JSON.stringify(newMessages),
-          model_name: settings.model
+          model_name: settings.model,
+          api_config: JSON.stringify(settings.apiConfigs[settings.model])
         })
       });
 
@@ -198,180 +207,141 @@ function Viewer() {
     window.getSelection().removeAllRanges();
   };
 
+  const renderDropZone = () => (
+    <Center h="100vh" style={{ marginTop: -50 }}>
+      <Paper
+        withBorder
+        p="xl"
+        style={{ 
+          border: '3px dashed #ccc',
+          cursor: 'pointer',
+          backgroundColor: '#f8f9fa',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+      >
+        <Stack align="center" gap="md">
+          <Text>Drop a PDF file here or</Text>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={handleFileInputChange}
+            style={{ display: 'none' }}
+          />
+          <Button
+            onClick={() => document.querySelector('input[type="file"]').click()}
+          >
+            Choose File
+          </Button>
+        </Stack>
+      </Paper>
+    </Center>
+  );
+
   const renderContent = () => {
     if (!pdfUrl) {
-      return (
-        <div
-          style={styles.dropZone}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-        >
-          <div style={styles.dropZoneContent}>
-            <p>Drop a PDF file here or</p>
-            <input type="file"
-              accept="application/pdf"
-              onChange={handleFileInputChange}
-              style={styles.fileInput}
-            />
-            <button
-              onClick={() => document.querySelector('input[type="file"]').click()}
-              style={styles.uploadButton}
-            >
-              Choose File
-            </button>
-          </div>
-        </div>
-      );
+      return renderDropZone();
     }
 
     return (
-      <div style={styles.mainContent}>
-        <div
-          style={styles.documentContainer}
-          onMouseUp={handleTextSelection}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-        >
-          {selection.visible && (
-            <button
-              onClick={handleAddToChat}
-              style={{
-                ...styles.addToChatButton,
-                position: 'fixed',
-                left: `${selection.position.x}px`,
-                top: `${selection.position.y}px`,
-              }}
-            >
-              Add to chat
-            </button>
-          )}
-          <Document
-            file={pdfUrl}
-            onLoadSuccess={onDocumentLoadSuccess}
+      <div style={{ 
+        display: 'flex', 
+        height: 'calc(100vh - 50px)',
+        gap: '1px',
+        backgroundColor: '#e9ecef' // Subtle divider color between columns
+      }}>
+        {/* PDF Viewer Column */}
+        <div style={{ 
+          flex: '1 1 75%',
+          height: '100%',
+          overflow: 'hidden'
+        }}>
+          <Paper 
+            onMouseUp={handleTextSelection}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            style={{ 
+              height: '100%',
+              overflow: 'auto',
+              padding: '1rem',
+              position: 'relative'
+            }}
           >
-            {Array.from(new Array(numPages), (el, index) => (
-              <Page
-                scale={2}
-                key={`page_${index + 1}`}
-                pageNumber={index + 1}
-                renderTextLayer={true}
-                renderAnnotationLayer={true}
-                className="pdf-page"
-              />
-            ))}
-          </Document>
+            {selection.visible && (
+              <Button
+                onClick={handleAddToChat}
+                style={{
+                  position: 'fixed',
+                  left: `${selection.position.x}px`,
+                  top: `${selection.position.y}px`,
+                  zIndex: 1000,
+                }}
+                size="xs"
+              >
+                Add to chat
+              </Button>
+            )}
+            <Stack align="center" gap="md" style={{ minWidth: 'fit-content' }}>
+              <Document
+                file={pdfUrl}
+                onLoadSuccess={onDocumentLoadSuccess}
+              >
+                {Array.from(new Array(numPages), (el, index) => (
+                  <Page
+                    scale={1.5}
+                    key={`page_${index + 1}`}
+                    pageNumber={index + 1}
+                    renderTextLayer={true}
+                    renderAnnotationLayer={true}
+                    className="pdf-page"
+                  />
+                ))}
+              </Document>
+            </Stack>
+          </Paper>
         </div>
-        <Chat
-          messages={messages}
-          inputMessage={inputMessage}
-          setInputMessage={setInputMessage}
-          handleSendMessage={handleSendMessage}
-        />
+
+        {/* Chat Column */}
+        <div style={{ 
+          flex: '1 1 25%',
+          height: '100%',
+          overflow: 'hidden'
+        }}>
+          <Paper 
+            p={0} 
+            withBorder 
+            style={{ 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+          >
+            <Chat
+              messages={messages}
+              inputMessage={inputMessage}
+              setInputMessage={setInputMessage}
+              handleSendMessage={handleSendMessage}
+            />
+          </Paper>
+        </div>
       </div>
     );
   };
 
   return (
-    <div style={styles.container}>
+    <div style={{ height: '100%' }}>
       {renderContent()}
     </div>
   );
 }
 
-const styles = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    width: '100%',
-    flex: 1,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  documentContainer: {
-    flex: '1 1 70%',
-    height: '100%',
-    overflow: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: '20px',
-    gap: '20px',
-  },
-  addToChatButton: {
-    padding: '4px 8px',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    zIndex: 1000,
-    fontSize: '14px',
-  },
-  dropZone: {
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    border: '3px dashed #ccc',
-    borderRadius: '8px',
-    backgroundColor: '#f8f9fa',
-    cursor: 'pointer',
-  },
-  dropZoneContent: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '1rem',
-  },
-  fileInput: {
-    display: 'none',
-  },
-  uploadButton: {
-    padding: '0.5rem 1rem',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  topBar: {
-    height: '50px',
-    backgroundColor: '#f8f9fa',
-    borderBottom: '1px solid #dee2e6',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '0 20px',
-  },
-  topBarLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  },
-  topBarRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  },
-  modelSelect: {
-    padding: '8px 16px',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
-  mainContent: {
-    display: 'flex',
-    flexDirection: 'row',
-    flex: 1,
-    overflow: 'hidden',
-  },
-};
-
-// Add this CSS somewhere in your stylesheet or create a new one
+// Keep only the PDF page styles
 const pageStyles = `
   .pdf-page {
     border: 1px solid #ccc;

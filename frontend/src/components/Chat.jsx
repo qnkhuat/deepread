@@ -1,101 +1,52 @@
 import ReactMarkdown from 'react-markdown';
+import { Paper, Stack, Textarea, Button, ScrollArea } from '@mantine/core';
 
 function Chat({ messages, inputMessage, setInputMessage, handleSendMessage }) {
   return (
-    <div style={styles.chatSidebar}>
-      <div style={styles.chatMessages}>
-        {messages.filter(message => !message.hide).map((message, index) => (
-          <div
-            key={index}
-            style={{
-              ...styles.message,
-              ...(message.role === 'user' ? styles.userMessage : styles.botMessage)
+    <Stack h="100%" spacing={0}>
+      <ScrollArea flex={1} p="md">
+        <Stack gap="md">
+          {messages.filter(message => !message.hide).map((message, index) => (
+            <Paper
+              key={index}
+              shadow="sm"
+              p="sm"
+              radius="md"
+              style={{
+                maxWidth: '80%',
+                marginLeft: message.role === 'user' ? 'auto' : 0,
+                backgroundColor: message.role === 'user' ? 'var(--mantine-primary-color)' : 'var(--mantine-color-gray-1)',
+                color: message.role === 'user' ? 'white' : 'inherit'
+              }}
+            >
+              <ReactMarkdown>{message.content}</ReactMarkdown>
+            </Paper>
+          ))}
+        </Stack>
+      </ScrollArea>
+
+      <Paper p="md" withBorder>
+        <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '0.5rem' }}>
+          <Textarea
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            placeholder="Ask a question..."
+            autosize
+            minRows={1}
+            maxRows={4}
+            style={{ flex: 1 }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage(e);
+              }
             }}
-          >
-            <ReactMarkdown>{message.content}</ReactMarkdown>
-          </div>
-        ))}
-      </div>
-      <form style={styles.inputForm} onSubmit={handleSendMessage}>
-        <textarea
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          style={styles.input}
-          placeholder="Ask a question..."
-          rows="1"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleSendMessage(e);
-            }
-          }}
-          onInput={(e) => {
-            e.target.style.height = 'auto';
-            e.target.style.height = e.target.scrollHeight + 'px';
-          }}
-        />
-        <button type="submit" style={styles.sendButton}>
-          Send
-        </button>
-      </form>
-    </div>
+          />
+          <Button type="submit">Send</Button>
+        </form>
+      </Paper>
+    </Stack>
   );
 }
-
-const styles = {
-  chatSidebar: {
-    flex: '0 0 25%',
-    display: 'flex',
-    flexDirection: 'column',
-    borderLeft: '1px solid #ccc',
-    backgroundColor: '#f5f5f5',
-  },
-  chatMessages: {
-    flex: 1,
-    overflow: 'auto',
-    padding: '1rem',
-  },
-  message: {
-    margin: '0.5rem 0',
-    padding: '0.5rem 1rem',
-    borderRadius: '8px',
-    maxWidth: '80%',
-    overflow: 'auto',
-  },
-  userMessage: {
-    backgroundColor: '#007bff',
-    color: 'white',
-    marginLeft: 'auto',
-  },
-  botMessage: {
-    backgroundColor: '#e9ecef',
-    color: 'black',
-    marginRight: 'auto',
-  },
-  inputForm: {
-    display: 'flex',
-    padding: '1rem',
-    borderTop: '1px solid #ccc',
-  },
-  input: {
-    flex: 1,
-    padding: '0.5rem',
-    borderRadius: '4px',
-    border: '1px solid #ccc',
-    marginRight: '0.5rem',
-    resize: 'none',
-    minHeight: '38px',
-    maxHeight: '150px',
-    overflow: 'auto',
-  },
-  sendButton: {
-    padding: '0.5rem 1rem',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-};
 
 export default Chat; 
