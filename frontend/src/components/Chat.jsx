@@ -23,6 +23,7 @@ function Chat({ messages, inputMessage, setInputMessage, handleSendMessage }) {
                 maxWidth: '80%',
                 ml: message.role === 'user' ? 'auto' : 0,
                 mr: message.role === 'user' ? 0 : 'auto',
+                pt: 0, pb: 0,
                 alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start',
                 bgcolor: message.role === 'user' ? 'primary.main' : 'background.paper',
                 color: message.role === 'user' ? 'primary.contrastText' : 'text.primary'
