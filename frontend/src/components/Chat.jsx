@@ -1,7 +1,14 @@
 import ReactMarkdown from 'react-markdown';
 import { Box, Stack, TextField, Button, Paper } from '@mui/material';
+import { useEffect, useRef } from 'react';
 
 function Chat({ messages, inputMessage, setInputMessage, handleSendMessage }) {
+  const messageEndRef = useRef(null);
+
+  useEffect(() => {
+    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   return (
     <Stack sx={{ height: '100%', spacing: 0 }}>
       <Box sx={{ flex: 1, p: 2, overflowY: 'auto' }}>
@@ -24,6 +31,7 @@ function Chat({ messages, inputMessage, setInputMessage, handleSendMessage }) {
               <ReactMarkdown>{message.content}</ReactMarkdown>
             </Paper>
           ))}
+          <div ref={messageEndRef} />
         </Stack>
       </Box>
 
