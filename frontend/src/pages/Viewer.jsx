@@ -20,7 +20,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
-function systemPrompt(paperContent) {
+const systemPrompt = (paperContent) => {
   return {
     content: `
 You are provided with the full content of a research paper uploaded by the user in PDF format content of the paper is as follows:
@@ -48,6 +48,9 @@ Ensure that your final answer is detailed, insightful, and directly based on the
 
 const BACKEND_URL = 'http://localhost:8000';
 
+// Add this new function before the Viewer component
+
+
 function Viewer() {
   const [numPages, setNumPages] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -60,6 +63,31 @@ function Viewer() {
   });
   const [pdfContent, setPdfContent] = useState('');
   const { settings, updateSetting } = useSettings();
+
+  const sendChatRequest = async (messages) => {
+    console.log(settings);
+    const response = await fetch(`${BACKEND_URL}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messages: messages,
+        llm_config: {
+          provider_name: settings.current_model[0],
+          model_name: settings.current_model[1],
+          config: settings.providers[settings.current_model[0]].config
+        }
+      })
+    });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to get chat response');
+  }
+
+  return response.json();
+}
 
   const handleFileUpload = async (file) => {
     if (file?.type === 'application/pdf') {
@@ -81,24 +109,8 @@ function Viewer() {
         messages.push(systemPrompt(fileData.content));
         messages.push({content: `Please summarize the paper.`, role: 'user', hide: true});
 
-        // Request summary from chat endpoint
-        const response = await fetch(`${BACKEND_URL}/api/chat`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            messages: JSON.stringify(messages),
-            model_name: settings.model
-          })
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || 'Failed to get chat response');
-        }
-
-        const data = await response.json();
+        // Use the new function
+        const data = await sendChatRequest(messages);
 
         // Add the summary to chat messages
         setMessages([
@@ -154,23 +166,8 @@ function Viewer() {
     setInputMessage('');
 
     try {
-      const response = await fetch(`${BACKEND_URL}/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          messages: JSON.stringify(newMessages),
-          model_name: settings.model,
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to get chat response');
-      }
-
-      const data = await response.json();
+      // Use the new function
+      const data = await sendChatRequest(newMessages);
       setMessages(prevMessages => [...prevMessages, {content: data.content, role: 'assistant'}]);
     } catch (error) {
       console.error('Error getting chat response:', error);

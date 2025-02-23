@@ -13,27 +13,25 @@ from haystack_integrations.components.generators.ollama import OllamaChatGenerat
 from haystack.utils import Secret
 import pymupdf4llm
 from haystack.dataclasses import ChatMessage
+from pydantic import BaseModel
+from typing import List
+import logging
+import traceback
+from fastapi import Request
+from fastapi.responses import JSONResponse
 
-def create_chat_generator(model_name):
-    if model_name.startswith("gpt") or model_name.startswith("grok"):
-        api_base_url = "https://api.x.ai/v1" if model_name.startswith("grok") else None
-        api_key = Secret.from_env_var("OPENAI_API_KEY") if model_name.startswith("gpt") else Secret.from_env_var("GROK_API_KEY")
+def create_chat_generator(provider_name, model_name, config):
+    if provider_name.startswith("openai") or provider_name.startswith("anthropic") or provider_name.startswith("grok"):
+        api_base_url = config["base_url"]["value"]
+        api_key = Secret.from_token(config["api_key"]["value"])
         assert api_key is not None, "OPENAI_API_KEY is not set"
         return OpenAIChatGenerator(
             api_key=api_key,
-            api_base_url = api_base_url,
+            api_base_url=api_base_url,
             model=model_name,
         )
-    else:
-        return OllamaChatGenerator(model=model_name, url="http://localhost:11434")
-
-# Create pipeline instance
-CHAT_GENERATORS = {}
-
-def get_chat_generator(model_name):
-    if model_name not in CHAT_GENERATORS:
-        CHAT_GENERATORS[model_name] = create_chat_generator(model_name)
-    return CHAT_GENERATORS[model_name]
+    elif provider_name.startswith("ollama"):
+        return OllamaChatGenerator(model=model_name, url=config["base_url"]["value"])
 
 app = FastAPI()
 
@@ -55,47 +53,50 @@ async def root():
 
 @app.post("/api/to_markdown")
 async def convert_pdf_to_markdown(file: UploadFile = File(...)):
-    try:
-        if not file.filename.endswith('.pdf'):
-            return JSONResponse(
-                status_code=400,
-                content={"message": "Only PDF files are allowed"}
-            )
-
-        # Read and save PDF temporarily
-        pdf_content = await file.read()
-        temp_pdf_path = f"temp_{file.filename}"
-        with open(temp_pdf_path, "wb") as f:
-            f.write(pdf_content)
-
-        # Convert PDF to markdown
-        markdown_text = pymupdf4llm.to_markdown(temp_pdf_path)
-        # Cleanup temporary file
-        os.remove(temp_pdf_path)
-
-        return {"content": markdown_text}
-
-    except Exception as e:
+    if not file.filename.endswith('.pdf'):
         return JSONResponse(
-            status_code=500,
-            content={"message": f"An error occurred: {str(e)}"}
+            status_code=400,
+            content={"message": "Only PDF files are allowed"}
         )
+
+    # Read and save PDF temporarily
+    pdf_content = await file.read()
+    temp_pdf_path = f"temp_{file.filename}"
+    with open(temp_pdf_path, "wb") as f:
+        f.write(pdf_content)
+
+    # Convert PDF to markdown
+    markdown_text = pymupdf4llm.to_markdown(temp_pdf_path)
+    # Cleanup temporary file
+    os.remove(temp_pdf_path)
+
+    return {"content": markdown_text}
+
+
+class ChatMessageModel(BaseModel):
+    role: str
+    content: str
+    name: str | None = None
+
+class ModelConfig(BaseModel):
+    provider_name: str
+    model_name: str
+    config: dict
+
+class ChatRequest(BaseModel):
+    messages: List[ChatMessageModel]
+    llm_config: ModelConfig
 
 @app.post("/api/chat")
-async def chat(
-    messages: str = Form(...),
-    model_name: str = Form(...)
-):
-    try:
-        chat_messages = [to_chat_message(message) for message in json.loads(messages)]
-        response = get_chat_generator(model_name).run(chat_messages)
-        return response["replies"][0].to_dict()
-
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"message": f"An error occurred: {str(e)}"}
-        )
+async def chat(request: ChatRequest):
+    chat_messages = [to_chat_message(msg.dict()) for msg in request.messages]
+    chat_generator = create_chat_generator(
+        request.llm_config.provider_name,
+        request.llm_config.model_name,
+        request.llm_config.config
+    )
+    response = chat_generator.run(chat_messages)
+    return response["replies"][0].to_dict()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

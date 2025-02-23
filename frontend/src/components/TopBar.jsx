@@ -48,7 +48,7 @@ function TopBar() {
       setTempSettings(JSON.parse(JSON.stringify(settings.providers)));
       setConfigOpen(true);
     } else {
-      updateSetting('model', modelName);
+      updateSetting('current_model', [providerName, modelName]);
     }
     handleClose();
   };
@@ -69,7 +69,7 @@ function TopBar() {
             onClick={handleClick}
             variant="outlined"
           >
-            {settings.model}
+            {settings.current_model[0]} - {settings.current_model[1]}
           </Button>
           <Menu
             anchorEl={anchorEl}
@@ -123,7 +123,7 @@ function TopBar() {
                 <TextField
                   key={`${providerName}-${key}`}
                   label={config.label}
-                  value={tempSettings[providerName]?.config[key]?.value || config.default || ''}
+                  value={tempSettings[providerName]?.config[key]?.value || ''}
                   onChange={(e) => {
                     setTempSettings(prev => ({
                       ...prev,

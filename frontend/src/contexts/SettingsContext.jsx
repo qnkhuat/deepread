@@ -13,7 +13,7 @@ const PROVIDER_CONFIG = {
         type: "text",
         label: "Base URL",
         required: false, 
-        default: "https://api.openai.com/v1"
+        value: "https://api.openai.com/v1"
       }
     }
   },
@@ -29,7 +29,7 @@ const PROVIDER_CONFIG = {
         type: "text",
         label: "Base URL",
         required: false,
-        default: "https://api.anthropic.com/v1"
+        value: "https://api.anthropic.com/v1"
       }
     }
   },
@@ -40,7 +40,7 @@ const PROVIDER_CONFIG = {
         type: "text",
         label: "Base URL",
         required: true,
-        default: "http://localhost:11434"
+        value: "http://localhost:11434"
       }
     }
   }
@@ -48,13 +48,14 @@ const PROVIDER_CONFIG = {
 
 // Define default settings
 const DEFAULT_SETTINGS = {
-  model: 'qwen2.5',
+  current_model: ['openai', 'gpt-4o-mini'],
+  providers: PROVIDER_CONFIG
 };
 
 // Helper function to initialize settings from localStorage
 const initializeSettings = () => {
   const savedSettings = localStorage.getItem('settings') || "{}";
-  return { ...DEFAULT_SETTINGS, providers: PROVIDER_CONFIG, ...JSON.parse(savedSettings)};
+  return { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings)};
 };
 
 const SettingsContext = createContext(null);
