@@ -1,46 +1,28 @@
 import { useSettings } from '../contexts/SettingsContext';
-import { Container, Modal, TextField, IconButton, Select, MenuItem, Box } from '@mui/material';
+import { Container, Modal, TextField, IconButton, Select, MenuItem, Box, Typography, Button } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useState } from 'react';
-
-const PROVIDER_CONFIG = {
-  "openai": {
-    "models": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
-    "config": {
-      "api_key": {"type": "text", "label": "API Key", required: true},
-      "base_url": {"type": "text", "label": "Base URL", required: false, default: "https://api.openai.com/v1"}
-    }
-  },
-  "anthropic": {
-    "models": ["claude-3-5-sonnet-20240620"],
-    "config": {
-      "api_key": {"type": "text", "label": "API Key", required: true},
-      "base_url": {"type": "text", "label": "Base URL", required: false, default: "https://api.anthropic.com/v1"}
-    }
-  },
-  "ollama": {
-    "models": ["qwen2.5", "qwen2.5-coder"],
-    "config": {
-      "base_url": {"type": "text", "label": "Base URL", required: true, default: "http://localhost:11434"}
-    }
-  }
-}
 
 function TopBar() {
   const { settings, updateSetting } = useSettings();
   const [configOpen, setConfigOpen] = useState(false);
+  const [tempSettings, setTempSettings] = useState({});
 
-  // Get the provider and its config based on selected model
-  const getProviderForModel = (model) => {
-    for (const [provider, config] of Object.entries(PROVIDER_CONFIG)) {
-      if (config.models.includes(model)) {
-        return { provider, config: config.config };
-      }
-    }
-    return null;
+  const handleOpenConfig = () => {
+    setTempSettings(JSON.parse(JSON.stringify(settings.providers)));
+    setConfigOpen(true);
   };
 
-  const currentProvider = getProviderForModel(settings.model);
+  const handleSave = () => {
+    Object.entries(tempSettings).forEach(([providerName, providerInfo]) => {
+      Object.entries(providerInfo.config).forEach(([key, config]) => {
+        if (config.value !== undefined) {
+          updateSetting(['providers', providerName, 'config', key, 'value'], config.value);
+        }
+      });
+    });
+    setConfigOpen(false);
+  };
 
   return (
     <Container maxWidth={false} sx={{ height: '50px', borderBottom: '1px solid #e0e0e0' }}>
@@ -63,7 +45,7 @@ function TopBar() {
             <MenuItem value="grok-2-1212">Grok 2 12 12</MenuItem>
           </Select>
           <IconButton 
-            onClick={() => setConfigOpen(true)} 
+            onClick={handleOpenConfig}
             size="small"
           >
             <SettingsIcon />
@@ -88,20 +70,42 @@ function TopBar() {
           minWidth: 300,
         }}>
           <h2>Provider Configuration</h2>
-          {currentProvider && Object.entries(currentProvider.config).map(([key, config]) => (
-            <TextField
-              key={key}
-              label={config.label}
-              placeholder={config.label}
-              value={settings[key] || config.default || ''}
-              onChange={(e) => updateSetting(key, e.target.value)}
-              required={config.required}
-              type={config.type === 'password' ? 'password' : 'text'}
-              fullWidth
-              margin="normal"
-              size="small"
-            />
+          {Object.entries(settings.providers).map(([providerName, providerInfo]) => (
+            <Box key={providerName}>
+              <Typography variant="h6" sx={{mt: 2, mb: 1}}>{providerName}</Typography>
+              {Object.entries(providerInfo.config).map(([key, config]) => (
+                <TextField
+                  key={`${providerName}-${key}`}
+                  label={config.label}
+                  value={tempSettings[providerName]?.config[key]?.value || config.default || ''}
+                  onChange={(e) => {
+                    setTempSettings(prev => ({
+                      ...prev,
+                      [providerName]: {
+                        ...prev[providerName],
+                        config: {
+                          ...prev[providerName].config,
+                          [key]: {
+                            ...prev[providerName].config[key],
+                            value: e.target.value
+                          }
+                        }
+                      }
+                    }));
+                  }}
+                  required={config.required}
+                  type={config.type === 'password' ? 'password' : 'text'}
+                  fullWidth
+                  margin="normal"
+                  size="small"
+                />
+              ))}
+            </Box>
           ))}
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+            <Button variant="outlined" onClick={() => setConfigOpen(false)}>Cancel</Button>
+            <Button variant="contained" onClick={handleSave}>Save</Button>
+          </Box>
         </Box>
       </Modal>
     </Container>
