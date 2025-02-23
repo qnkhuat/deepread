@@ -1,5 +1,5 @@
 import { useSettings } from '../contexts/SettingsContext';
-import { Container, Modal, TextField, IconButton, Select, MenuItem, Box, Typography, Button } from '@mui/material';
+import { Container, Modal, TextField, IconButton, Select, MenuItem, ListSubheader, Box, Typography, Button, Menu } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useState } from 'react';
 
@@ -7,6 +7,8 @@ function TopBar() {
   const { settings, updateSetting } = useSettings();
   const [configOpen, setConfigOpen] = useState(false);
   const [tempSettings, setTempSettings] = useState({});
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [open, setOpen] = useState(false);
 
   const handleOpenConfig = () => {
     setTempSettings(JSON.parse(JSON.stringify(settings.providers)));
@@ -24,6 +26,33 @@ function TopBar() {
     setConfigOpen(false);
   };
 
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+    setOpen(false);
+  };
+
+  const isProviderConfigured = (providerName) => {
+    const provider = settings.providers[providerName];
+    return Object.entries(provider.config).every(([_, config]) => {
+      return !config.required || (config.value !== undefined && config.value !== '');
+    });
+  };
+
+  const handleModelSelect = (providerName, modelName) => {
+    if (!isProviderConfigured(providerName)) {
+      setTempSettings(JSON.parse(JSON.stringify(settings.providers)));
+      setConfigOpen(true);
+    } else {
+      updateSetting('model', modelName);
+    }
+    handleClose();
+  };
+
   return (
     <Container maxWidth={false} sx={{ height: '50px', borderBottom: '1px solid #e0e0e0' }}>
       <Box sx={{ 
@@ -35,15 +64,32 @@ function TopBar() {
         <Box>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Select
-            value={settings.model}
-            onChange={(e) => updateSetting('model', e.target.value)}
+          <Button
             size="small"
+            onClick={handleClick}
+            variant="outlined"
           >
-            <MenuItem value="qwen2.5">Qwen 2.5</MenuItem>
-            <MenuItem value="gpt-4o-mini">GPT-4o-mini</MenuItem>
-            <MenuItem value="grok-2-1212">Grok 2 12 12</MenuItem>
-          </Select>
+            {settings.model}
+          </Button>
+          <Menu
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleClose}
+          >
+            {Object.entries(settings.providers).map(([providerName, providerInfo]) => (
+              <div key={providerName}>
+                <ListSubheader>{providerName}</ListSubheader>
+                {providerInfo.models.map(modelName => (
+                  <MenuItem 
+                    key={modelName}
+                    onClick={() => handleModelSelect(providerName, modelName)}
+                  >
+                    {modelName}
+                  </MenuItem>
+                ))}
+              </div>
+            ))}
+          </Menu>
           <IconButton 
             onClick={handleOpenConfig}
             size="small"
