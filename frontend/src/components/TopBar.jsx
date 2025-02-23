@@ -62,6 +62,7 @@ function TopBar() {
         alignItems: 'center' 
       }}>
         <Box>
+          <Typography variant="h6">DeepRead</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Button
