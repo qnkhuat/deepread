@@ -259,7 +259,7 @@ function Viewer() {
       }}>
         {/* PDF Viewer Column */}
         <Box sx={{ 
-          flex: '1 1 75%',
+          flex: '1 1 70%',
           height: '100%',
           overflow: 'hidden'
         }}>
@@ -311,7 +311,7 @@ function Viewer() {
 
         {/* Chat Column */}
         <Box sx={{ 
-          flex: '1 1 25%',
+          flex: '1 1 30%',
           height: '100%',
           overflow: 'hidden'
         }}>
