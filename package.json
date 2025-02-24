@@ -1,0 +1,29 @@
+{
+  "name": "deep-read",
+  "version": "1.0.0",
+  "description": "PDF Reader and Analysis Tool",
+  "main": "app/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm start\" \"electron .\"",
+    "build": "cd frontend && npm run build && cd ../backend && npm run build",
+    "package": "electron-builder"
+  },
+  "build": {
+    "appId": "com.deepread.app",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "app/**/*",
+      "frontend/dist/**/*",
+      "backend/**/*",
+      "package.json"
+    ]
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^34.2.0",
+    "electron-builder": "^24.9.1"
+  }
+}
