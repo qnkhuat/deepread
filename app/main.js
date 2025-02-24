@@ -7,6 +7,24 @@ const logFilePath = '/Users/earther/tmp/log.txt';
 let mainWindow;
 let backendProcess;
 
+function logToFile(message) {
+  fs.appendFileSync(logFilePath, message + '\n');
+}
+
+function logAllFilesInDir() {
+  try {
+    const files = fs.readdirSync(__dirname);
+    logToFile('Files in __dirname:');
+    files.forEach(file => {
+      logToFile(`File: ${file}, Path: ${path.join(__dirname, file)}`);
+    });
+  } catch (error) {
+    logToFile('Error reading directory: ' + error);
+  }
+}
+
+// Call the function to log all files
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -28,22 +46,22 @@ function createWindow() {
 
 function startBackend() {
   if (app.isPackaged) {
+    logToFile('Starting backend in production mode...');
+    logAllFilesInDir();
+
     const backendPath = path.join(process.resourcesPath, 'backend', 'main.js');
+    logToFile('Backend path: ' + backendPath);
+
     // Verify backend file exists
     if (!require('fs').existsSync(backendPath)) {
+      logToFile('Backend file not found: ' + backendPath);
       app.quit();
       return;
     }
+    logToFile('Backend file found, attempting to start process...');
 
     // Create node_modules directory if it doesn't exist
     const backendDir = path.dirname(backendPath);
-    const nodeModulesPath = path.join(backendDir, 'node_modules');
-    if (!fs.existsSync(nodeModulesPath)) {
-      require('child_process').execSync('npm install --production', {
-        cwd: backendDir,
-        stdio: 'inherit'
-      });
-    }
 
     try {
       backendProcess = spawn('node', [backendPath], {
@@ -54,39 +72,50 @@ function startBackend() {
           NODE_ENV: 'production'
         }
       });
+      logToFile('Backend process spawned with PID: ' + backendProcess.pid);
     } catch (error) {
+      logToFile('Failed to spawn backend process: ' + error);
       app.quit();
       return;
     }
 
     backendProcess.on('error', (error) => {
+      logToFile('Backend process error: ' + error);
       app.quit();
     });
 
     backendProcess.on('exit', (code, signal) => {
+      logToFile(`Backend process exited with code ${code}, signal: ${signal}`);
       if (code !== 0) {
+        logToFile(`Backend process failed with code ${code}, signal: ${signal}`);
         app.quit();
       }
     });
 
     // Verify backend is running by checking the endpoint
     const waitForBackend = async () => {
+      logToFile('Waiting for backend to become available...');
       const maxAttempts = 30;  // 30 seconds timeout
       for (let i = 0; i < maxAttempts; i++) {
         try {
+          logToFile(`Attempt ${i + 1}/${maxAttempts} to connect to backend...`);
           const response = await fetch('http://localhost:8000');
           if (response.ok) {
+            logToFile('Backend is up and running!');
             return;
           }
         } catch (err) {
+          logToFile(`Backend not ready, retrying in 1s... (${err.message})`);
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
+      logToFile('Backend failed to start within 30 seconds');
       if (backendProcess) backendProcess.kill();
       app.quit();
     };
 
     waitForBackend().catch(err => {
+      logToFile('Backend startup error: ' + err);
       if (backendProcess) backendProcess.kill();
       app.quit();
     });
@@ -106,6 +135,7 @@ function startBackend() {
     };
 
     waitForBackend().catch(err => {
+      logToFile('Backend startup error: ' + err);
       app.quit();
     });
   }
