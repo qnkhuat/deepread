@@ -3,35 +3,14 @@ import uvicorn
 from fastapi import FastAPI, UploadFile, File, Query, Form
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-# Create Haystack pipeline for PDF processing and summarization
-from haystack import Pipeline
-from haystack.components.converters import PyPDFToDocument
-from haystack.components.preprocessors import DocumentCleaner
-from haystack.components.builders import PromptBuilder
-from haystack.components.generators.chat import OpenAIChatGenerator
-from haystack_integrations.components.generators.ollama import OllamaChatGenerator
-from haystack.utils import Secret
+import openai  # Import OpenAI library
 import pymupdf4llm
-from haystack.dataclasses import ChatMessage
 from pydantic import BaseModel
 from typing import List
 import logging
 import traceback
 from fastapi import Request
 from fastapi.responses import JSONResponse
-
-def create_chat_generator(provider_name, model_name, config):
-    if provider_name.startswith("openai") or provider_name.startswith("anthropic") or provider_name.startswith("grok"):
-        api_base_url = config["base_url"]["value"]
-        api_key = Secret.from_token(config["api_key"]["value"])
-        assert api_key is not None, "OPENAI_API_KEY is not set"
-        return OpenAIChatGenerator(
-            api_key=api_key,
-            api_base_url=api_base_url,
-            model=model_name,
-        )
-    elif provider_name.startswith("ollama"):
-        return OllamaChatGenerator(model=model_name, url=config["base_url"]["value"])
 
 app = FastAPI()
 
@@ -43,9 +22,6 @@ app.add_middleware(
         allow_methods=["*"],
         allow_headers=["*"],
         )
-
-def to_chat_message(message):
-    return ChatMessage.from_dict({"role": message["role"], "content": message["content"], "name": None})
 
 @app.get("/")
 async def root():
@@ -89,14 +65,18 @@ class ChatRequest(BaseModel):
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
-    chat_messages = [to_chat_message(msg.dict()) for msg in request.messages]
-    chat_generator = create_chat_generator(
-        request.llm_config.provider_name,
-        request.llm_config.model_name,
-        request.llm_config.config
+    # Prepare messages for OpenAI API
+    openai_messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
+    
+    # Call OpenAI API
+    response = openai.ChatCompletion.create(
+        model=request.llm_config.model_name,
+        messages=openai_messages,
+        api_key=request.llm_config.config["api_key"]["value"]
     )
-    response = chat_generator.run(chat_messages)
-    return response["replies"][0].to_dict()
+    
+    # Return the first reply
+    return {"content": response.choices[0].message["content"]}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

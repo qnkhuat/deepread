@@ -16,19 +16,40 @@ function createWindow() {
   });
 
   // In development, load from React dev server
-  if (process.env.NODE_ENV === 'development') {
+  if (app.isPackaged) {
+    mainWindow.loadFile(path.join(__dirname, '../frontend/dist/index.html'));
+  } else {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
-  } else {
-    mainWindow.loadFile(path.join(__dirname, '../frontend/dist/index.html'));
   }
 }
 
 function startBackend() {
-  const backendPath = path.join(__dirname, '../backend/main.js');
-  backendProcess = spawn('node', [backendPath], {
-    stdio: 'inherit'
-  });
+  if (app.isPackaged) {
+    const backendPath = path.join(__dirname, '../backend/main.js');
+    backendProcess = spawn('node', [backendPath], {
+      stdio: 'inherit'
+    });
+  } else {
+    // Wait for backend to start
+    const waitForBackend = async () => {
+      const maxAttempts = 30;  // 30 seconds timeout
+      for (let i = 0; i < maxAttempts; i++) {
+        try {
+          const response = await fetch('http://localhost:8000');
+          if (response.ok) return;
+        } catch (err) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      throw new Error('Backend failed to start within 30 seconds');
+    };
+    
+    waitForBackend().catch(err => {
+      console.error('Backend startup error:', err);
+      app.quit();
+    });
+  }
 
   backendProcess.on('error', (error) => {
     console.error('Failed to start backend process:', error);

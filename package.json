@@ -1,12 +1,13 @@
 {
   "name": "deep-read",
+  "author": "qn.khuat@gmail.com",
   "version": "1.0.0",
   "description": "PDF Reader and Analysis Tool",
   "main": "app/main.js",
   "scripts": {
     "start": "electron .",
     "dev": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm start\" \"electron .\"",
-    "build": "cd frontend && npm run build && cd ../backend && npm run build",
+    "build": "cd frontend && npm run build && cd ../backend && npm install --production",
     "package": "electron-builder"
   },
   "build": {
