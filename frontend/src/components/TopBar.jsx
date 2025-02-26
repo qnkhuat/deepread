@@ -62,7 +62,9 @@ function TopBar() {
         alignItems: 'center' 
       }}>
         <Box>
-          <Typography variant="h6">DeepRead</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <img src="/icon/png/64x64.png" alt="DeepRead Logo" style={{ height: '32px', width: 'auto' }} />
+          </Box>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Button

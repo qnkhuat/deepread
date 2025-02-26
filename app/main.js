@@ -26,9 +26,22 @@ function logAllFilesInDir() {
 // Call the function to log all files
 
 function createWindow() {
+  // Use platform-specific icons
+  let iconPath;
+  if (process.platform === 'darwin') {
+    iconPath = path.resolve(__dirname, '../frontend/public/icon/macos/icon.icns');
+  } else if (process.platform === 'win32') {
+    iconPath = path.resolve(__dirname, '../frontend/public/icon/win/icon.ico');
+  } else {
+    // Linux or other platforms
+    iconPath = path.resolve(__dirname, '../frontend/public/icon/png/1024x1024.png');
+  }
+  logToFile('Icon path: ' + iconPath);
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: iconPath,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
@@ -47,7 +60,6 @@ function createWindow() {
 function startBackend() {
   if (app.isPackaged) {
     logToFile('Starting backend in production mode...');
-    logAllFilesInDir();
 
     const backendPath = path.join(process.resourcesPath, 'backend', 'main.js');
     logToFile('Backend path: ' + backendPath);
