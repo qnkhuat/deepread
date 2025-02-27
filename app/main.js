@@ -3,43 +3,91 @@ const path = require('path');
 const {spawn} = require('child_process');
 const fs = require('fs');
 const portscanner = require('portscanner');
-const logFilePath = '/Users/earther/tmp/log.txt';
 
 let mainWindow;
 let backendProcess;
-let backendPort = 8000; // Default port, will be dynamically assigned if busy
+let backendPort = 8345; // Default port, will be dynamically assigned if busy
 
 // Function to find an available port
 async function findAvailablePort(startPort, endPort) {
   try {
     const port = await portscanner.findAPortNotInUse(startPort, endPort, '127.0.0.1');
-    logToFile(`Found available port: ${port}`);
+    console.log(`Found available port: ${port}`);
     return port;
   } catch (error) {
-    logToFile(`Error finding available port: ${error}`);
+    console.error(`Error finding available port: ${error}`);
     return startPort; // Fallback to start port if something goes wrong
   }
 }
 
-function logToFile(message) {
-  if (!app.isPackaged) {
-    fs.appendFileSync(logFilePath, message + '\n');
+async function waitForBackend(maxAttempts = 30) {
+  console.log('Waiting for backend to become available...');
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      console.log(`Attempt ${i + 1}/${maxAttempts} to connect to backend at port ${backendPort}...`);
+      const response = await fetch(`http://localhost:${backendPort}`);
+      if (response.ok) {
+        console.log('Backend is up and running!');
+        return;
+      }
+    } catch (err) {
+      console.error(`Backend not ready, retrying in 1s... (${err.message})`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
   }
+  console.error('Backend failed to start within 30 seconds');
+  if (backendProcess) backendProcess.kill();
+  app.quit();
 }
 
-function logAllFilesInDir() {
-  try {
-    const files = fs.readdirSync(__dirname);
-    logToFile('Files in __dirname:');
-    files.forEach(file => {
-      logToFile(`File: ${file}, Path: ${path.join(__dirname, file)}`);
+async function startBackend() {
+  // Find an available port first
+  if (app.isPackaged) {
+    backendPort = await findAvailablePort(8345, 8999);
+    console.log(`Using port ${backendPort} for backend`);
+
+    console.log('Starting backend in production mode...');
+
+    const backendPath = path.join(process.resourcesPath, 'backend', 'main.js');
+
+    try {
+      backendProcess = spawn('node', [backendPath], {
+        stdio: 'inherit',
+        cwd: path.dirname(backendPath),
+        env: {
+          ...process.env,
+          NODE_ENV: 'production',
+          PORT: backendPort.toString() // Pass the port to the backend
+        }
+      });
+      console.log('Backend process spawned with PID: ' + backendProcess.pid);
+    } catch (error) {
+      console.error('Failed to spawn backend process: ' + error);
+      app.quit();
+      return;
+    }
+    fs.appendFileSync("/Users/earther/tmp/log.txt", `Backend port: ${backendPort}\n`);
+
+    backendProcess.on('error', (error) => {
+      console.error('Backend process error: ' + error);
+      app.quit();
     });
-  } catch (error) {
-    logToFile('Error reading directory: ' + error);
-  }
-}
 
-// Call the function to log all files
+    backendProcess.on('exit', (code, signal) => {
+      console.log(`Backend process exited with code ${code}, signal: ${signal}`);
+      if (code !== 0) {
+        console.error(`Backend process failed with code ${code}, signal: ${signal}`);
+        app.quit();
+      }
+    });
+  }
+
+  waitForBackend().catch(err => {
+    console.error('Backend startup error: ' + err);
+    if (backendProcess) backendProcess.kill();
+    app.quit();
+  });
+}
 
 function createWindow() {
   // Use platform-specific icons
@@ -52,7 +100,6 @@ function createWindow() {
     // Linux or other platforms
     iconPath = path.resolve(__dirname, '../frontend/public/icon/png/1024x1024.png');
   }
-  logToFile('Icon path: ' + iconPath);
 
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -76,112 +123,8 @@ function createWindow() {
   // Send the backend port to the frontend
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.send('backend-port', backendPort);
-    logToFile(`Sent backend port ${backendPort} to frontend`);
+    console.log(`Sent backend port ${backendPort} to frontend`);
   });
-}
-
-async function startBackend() {
-  // Find an available port first
-  backendPort = await findAvailablePort(8345, 8999);
-  logToFile(`Using port ${backendPort} for backend`);
-
-  if (app.isPackaged) {
-    logToFile('Starting backend in production mode...');
-
-    const backendPath = path.join(process.resourcesPath, 'backend', 'main.js');
-    logToFile('Backend path: ' + backendPath);
-
-    // Verify backend file exists
-    if (!require('fs').existsSync(backendPath)) {
-      logToFile('Backend file not found: ' + backendPath);
-      app.quit();
-      return;
-    }
-    logToFile('Backend file found, attempting to start process...');
-
-    // Create node_modules directory if it doesn't exist
-    const backendDir = path.dirname(backendPath);
-
-    try {
-      backendProcess = spawn('node', [backendPath], {
-        stdio: 'inherit',
-        cwd: backendDir,
-        env: {
-          ...process.env,
-          NODE_ENV: 'production',
-          PORT: backendPort.toString() // Pass the port to the backend
-        }
-      });
-      logToFile('Backend process spawned with PID: ' + backendProcess.pid);
-    } catch (error) {
-      logToFile('Failed to spawn backend process: ' + error);
-      app.quit();
-      return;
-    }
-
-    backendProcess.on('error', (error) => {
-      logToFile('Backend process error: ' + error);
-      app.quit();
-    });
-
-    backendProcess.on('exit', (code, signal) => {
-      logToFile(`Backend process exited with code ${code}, signal: ${signal}`);
-      if (code !== 0) {
-        logToFile(`Backend process failed with code ${code}, signal: ${signal}`);
-        app.quit();
-      }
-    });
-
-    // Verify backend is running by checking the endpoint
-    const waitForBackend = async () => {
-      logToFile('Waiting for backend to become available...');
-      const maxAttempts = 30;  // 30 seconds timeout
-      for (let i = 0; i < maxAttempts; i++) {
-        try {
-          logToFile(`Attempt ${i + 1}/${maxAttempts} to connect to backend...`);
-          const response = await fetch(`http://localhost:${backendPort}`);
-          if (response.ok) {
-            logToFile('Backend is up and running!');
-            return;
-          }
-        } catch (err) {
-          logToFile(`Backend not ready, retrying in 1s... (${err.message})`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-      logToFile('Backend failed to start within 30 seconds');
-      if (backendProcess) backendProcess.kill();
-      app.quit();
-    };
-
-    waitForBackend().catch(err => {
-      logToFile('Backend startup error: ' + err);
-      if (backendProcess) backendProcess.kill();
-      app.quit();
-    });
-  } else {
-    // In development mode, we need to pass the port to the backend
-    // This assumes the backend is started separately in development
-
-    // Wait for backend to start
-    const waitForBackend = async () => {
-      const maxAttempts = 30;  // 30 seconds timeout
-      for (let i = 0; i < maxAttempts; i++) {
-        try {
-          const response = await fetch(`http://localhost:${backendPort}`);
-          if (response.ok) return;
-        } catch (err) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-      throw new Error('Backend failed to start within 30 seconds');
-    };
-
-    waitForBackend().catch(err => {
-      logToFile('Backend startup error: ' + err);
-      app.quit();
-    });
-  }
 }
 
 app.whenReady().then(async () => {
@@ -194,8 +137,10 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', function () {
+  console.log('All windows closed');
   if (process.platform !== 'darwin') {
     if (backendProcess) {
+      console.log('Killing backend process');
       backendProcess.kill();
     }
     app.quit();

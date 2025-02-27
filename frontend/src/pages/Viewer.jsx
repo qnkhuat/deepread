@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {Document, Page, pdfjs} from 'react-pdf';
-import { 
+import {
   Box,
   Stack,
   Button,
@@ -12,7 +12,7 @@ import {
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import Chat from '../components/Chat';
-import { useSettings } from '../contexts/SettingsContext';
+import {useSettings} from '../contexts/SettingsContext';
 
 // Set the worker source
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -46,9 +46,11 @@ Ensure that your final answer is detailed, insightful, and directly based on the
   }
 }
 
-const BACKEND_URL = window.electron?.backendPort 
-  ? `http://localhost:${window.electron.backendPort}` 
-  : 'http://localhost:8000'; // Fallback to default port if not provided by Electron
+const backendURL = () => {
+  return window.electron
+    ? `http://localhost:${window.electron.getBackendPort()}`
+    : 'http://localhost:8345';
+}
 
 // Add this new function before the Viewer component
 
@@ -64,11 +66,11 @@ function Viewer() {
     visible: false
   });
   const [pdfContent, setPdfContent] = useState('');
-  const { settings, updateSetting } = useSettings();
+  const {settings, updateSetting} = useSettings();
 
   const sendChatRequest = async (messages) => {
     console.log(settings);
-    const response = await fetch(`${BACKEND_URL}/api/chat`, {
+    const response = await fetch(`${backendURL()}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -83,13 +85,13 @@ function Viewer() {
       })
     });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to get chat response');
-  }
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to get chat response');
+    }
 
-  return response.json();
-}
+    return response.json();
+  }
 
   const handleFileUpload = async (file) => {
     if (file?.type === 'application/pdf') {
@@ -102,7 +104,7 @@ function Viewer() {
 
       try {
         // Get a summarization of the document
-        const fileResponse = await fetch(`${BACKEND_URL}/api/to_markdown`, {
+        const fileResponse = await fetch(`${backendURL()}/api/to_markdown`, {
           method: 'POST',
           body: formData,
         });
@@ -204,9 +206,9 @@ function Viewer() {
   };
 
   const renderDropZone = () => (
-    <Box 
-      sx={{ 
-        height: 'calc(100vh - 50px)', 
+    <Box
+      sx={{
+        height: 'calc(100vh - 50px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -214,7 +216,7 @@ function Viewer() {
     >
       <Paper
         elevation={0}
-        sx={{ 
+        sx={{
           border: '3px dashed #ccc',
           cursor: 'pointer',
           bgcolor: 'grey.50',
@@ -234,7 +236,7 @@ function Viewer() {
             type="file"
             accept="application/pdf"
             onChange={handleFileInputChange}
-            style={{ display: 'none' }}
+            style={{display: 'none'}}
           />
           <Button
             variant="contained"
@@ -253,23 +255,23 @@ function Viewer() {
     }
 
     return (
-      <Box sx={{ 
-        display: 'flex', 
+      <Box sx={{
+        display: 'flex',
         height: 'calc(100vh - 50px)',
         gap: '1px',
         bgcolor: 'grey.100'
       }}>
         {/* PDF Viewer Column */}
-        <Box sx={{ 
+        <Box sx={{
           flex: '1 1 70%',
           height: '100%',
           overflow: 'hidden'
         }}>
-          <Paper 
+          <Paper
             onMouseUp={handleTextSelection}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
-            sx={{ 
+            sx={{
               height: '100%',
               overflow: 'auto',
               p: 2,
@@ -291,7 +293,7 @@ function Viewer() {
                 Add to chat
               </Button>
             )}
-            <Stack spacing={2} alignItems="center" sx={{ minWidth: 'fit-content' }}>
+            <Stack spacing={2} alignItems="center" sx={{minWidth: 'fit-content'}}>
               <Document
                 file={pdfUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
@@ -312,14 +314,14 @@ function Viewer() {
         </Box>
 
         {/* Chat Column */}
-        <Box sx={{ 
+        <Box sx={{
           flex: '1 1 30%',
           height: '100%',
           overflow: 'hidden'
         }}>
-          <Paper 
+          <Paper
             elevation={1}
-            sx={{ 
+            sx={{
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
@@ -339,7 +341,7 @@ function Viewer() {
   };
 
   return (
-      renderContent()
+    renderContent()
   );
 }
 
