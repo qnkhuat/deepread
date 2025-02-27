@@ -2,10 +2,24 @@ const {app, BrowserWindow} = require('electron');
 const path = require('path');
 const {spawn} = require('child_process');
 const fs = require('fs');
+const portscanner = require('portscanner');
 const logFilePath = '/Users/earther/tmp/log.txt';
 
 let mainWindow;
 let backendProcess;
+let backendPort = 8000; // Default port, will be dynamically assigned if busy
+
+// Function to find an available port
+async function findAvailablePort(startPort, endPort) {
+  try {
+    const port = await portscanner.findAPortNotInUse(startPort, endPort, '127.0.0.1');
+    logToFile(`Found available port: ${port}`);
+    return port;
+  } catch (error) {
+    logToFile(`Error finding available port: ${error}`);
+    return startPort; // Fallback to start port if something goes wrong
+  }
+}
 
 function logToFile(message) {
   fs.appendFileSync(logFilePath, message + '\n');
@@ -43,8 +57,9 @@ function createWindow() {
     height: 800,
     icon: iconPath,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
     }
   });
 
@@ -55,9 +70,19 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   }
+
+  // Send the backend port to the frontend
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.send('backend-port', backendPort);
+    logToFile(`Sent backend port ${backendPort} to frontend`);
+  });
 }
 
-function startBackend() {
+async function startBackend() {
+  // Find an available port first
+  backendPort = await findAvailablePort(8345, 8999);
+  logToFile(`Using port ${backendPort} for backend`);
+
   if (app.isPackaged) {
     logToFile('Starting backend in production mode...');
 
@@ -81,7 +106,8 @@ function startBackend() {
         cwd: backendDir,
         env: {
           ...process.env,
-          NODE_ENV: 'production'
+          NODE_ENV: 'production',
+          PORT: backendPort.toString() // Pass the port to the backend
         }
       });
       logToFile('Backend process spawned with PID: ' + backendProcess.pid);
@@ -111,7 +137,7 @@ function startBackend() {
       for (let i = 0; i < maxAttempts; i++) {
         try {
           logToFile(`Attempt ${i + 1}/${maxAttempts} to connect to backend...`);
-          const response = await fetch('http://localhost:8000');
+          const response = await fetch(`http://localhost:${backendPort}`);
           if (response.ok) {
             logToFile('Backend is up and running!');
             return;
@@ -132,12 +158,15 @@ function startBackend() {
       app.quit();
     });
   } else {
+    // In development mode, we need to pass the port to the backend
+    // This assumes the backend is started separately in development
+
     // Wait for backend to start
     const waitForBackend = async () => {
       const maxAttempts = 30;  // 30 seconds timeout
       for (let i = 0; i < maxAttempts; i++) {
         try {
-          const response = await fetch('http://localhost:8000');
+          const response = await fetch(`http://localhost:${backendPort}`);
           if (response.ok) return;
         } catch (err) {
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -153,9 +182,9 @@ function startBackend() {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await startBackend();
   createWindow();
-  startBackend();
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

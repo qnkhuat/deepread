@@ -35,20 +35,29 @@
     ],
     "mac": {
       "icon": "./frontend/public/icon/macos/icon.icns",
-      "target": ["dmg"]
+      "target": [
+        "dmg"
+      ]
     },
     "win": {
       "icon": "./frontend/public/icon/win/icon.ico",
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "linux": {
       "icon": "./frontend/public/icon/png/1024x1024.png",
-      "target": ["AppImage"]
+      "target": [
+        "AppImage"
+      ]
     }
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
     "electron": "^34.2.0",
     "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "portscanner": "^2.2.0"
   }
 }

@@ -46,7 +46,9 @@ Ensure that your final answer is detailed, insightful, and directly based on the
   }
 }
 
-const BACKEND_URL = 'http://localhost:8000';
+const BACKEND_URL = window.electron?.backendPort 
+  ? `http://localhost:${window.electron.backendPort}` 
+  : 'http://localhost:8000'; // Fallback to default port if not provided by Electron
 
 // Add this new function before the Viewer component
 
