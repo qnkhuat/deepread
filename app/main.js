@@ -22,7 +22,9 @@ async function findAvailablePort(startPort, endPort) {
 }
 
 function logToFile(message) {
-  fs.appendFileSync(logFilePath, message + '\n');
+  if (!app.isPackaged) {
+    fs.appendFileSync(logFilePath, message + '\n');
+  }
 }
 
 function logAllFilesInDir() {
