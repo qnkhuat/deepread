@@ -7,7 +7,8 @@ import {
   Button,
   Typography,
   Paper,
-  Container
+  Container,
+  Slider
 } from '@mui/material';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -66,6 +67,7 @@ function Viewer() {
     visible: false
   });
   const [pdfContent, setPdfContent] = useState('');
+  const [scale, setScale] = useState(1.5);
   const {settings, updateSetting} = useSettings();
 
   const sendChatRequest = async (messages) => {
@@ -205,6 +207,10 @@ function Viewer() {
     window.getSelection().removeAllRanges();
   };
 
+  const handleScaleChange = (event, newValue) => {
+    setScale(newValue);
+  };
+
   const renderDropZone = () => (
     <Box
       sx={{
@@ -265,8 +271,31 @@ function Viewer() {
         <Box sx={{
           flex: '1 1 70%',
           height: '100%',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
         }}>
+          {/* Add PDF controls */}
+          <Box sx={{ 
+            p: 1, 
+            display: 'flex', 
+            alignItems: 'center',
+            bgcolor: 'white',
+            borderBottom: '1px solid #e0e0e0'
+          }}>
+            <Typography variant="body2" sx={{ mr: 2 }}>Zoom:</Typography>
+            <Slider
+              value={scale}
+              onChange={handleScaleChange}
+              min={0.5}
+              max={3}
+              step={0.1}
+              valueLabelDisplay="auto"
+              valueLabelFormat={value => `${Math.round(value * 100)}%`}
+              sx={{ width: 200 }}
+            />
+          </Box>
+          
           <Paper
             onMouseUp={handleTextSelection}
             onDrop={handleDrop}
@@ -275,7 +304,8 @@ function Viewer() {
               height: '100%',
               overflow: 'auto',
               p: 2,
-              position: 'relative'
+              position: 'relative',
+              flexGrow: 1
             }}
           >
             {selection.visible && (
@@ -300,7 +330,7 @@ function Viewer() {
               >
                 {Array.from(new Array(numPages), (el, index) => (
                   <Page
-                    scale={1.5}
+                    scale={scale}
                     key={`page_${index + 1}`}
                     pageNumber={index + 1}
                     renderTextLayer={true}
