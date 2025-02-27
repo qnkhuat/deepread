@@ -15,12 +15,10 @@ app.use(fileUpload({
 
 // Helper function to create OpenAI client with custom configuration
 function createChatClient(providerName, modelName, config) {
-  if (providerName.startsWith('openai')) {
-    return new OpenAI({
-      apiKey: config.api_key.value,
-      baseURL: config.base_url.value,
-    });
-  }
+  return new OpenAI({
+    apiKey: config.api_key.value,
+    baseURL: config.base_url.value,
+  });
   // Note: Other providers like Anthropic and Ollama would need their own client implementations
   throw new Error(`Provider ${providerName} not supported in this version`);
 }

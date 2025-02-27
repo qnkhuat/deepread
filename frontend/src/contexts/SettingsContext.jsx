@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import {createContext, useContext, useState} from 'react';
 
 const PROVIDER_CONFIG = {
   openai: {
@@ -6,13 +6,13 @@ const PROVIDER_CONFIG = {
     config: {
       api_key: {
         type: "text",
-        label: "API Key", 
+        label: "API Key",
         required: true
       },
       base_url: {
         type: "text",
         label: "Base URL",
-        required: false, 
+        required: false,
         value: "https://api.openai.com/v1"
       }
     }
@@ -22,7 +22,7 @@ const PROVIDER_CONFIG = {
     config: {
       api_key: {
         type: "text",
-        label: "API Key", 
+        label: "API Key",
         required: true
       },
       base_url: {
@@ -40,7 +40,13 @@ const PROVIDER_CONFIG = {
         type: "text",
         label: "Base URL",
         required: true,
-        value: "http://localhost:11434"
+        value: "http://localhost:11434/v1"
+      },
+      api_key: {
+        type: "text",
+        label: "API Key",
+        value: "ollama",
+        required: false
       }
     }
   }
@@ -55,17 +61,17 @@ const DEFAULT_SETTINGS = {
 // Helper function to initialize settings from localStorage
 const initializeSettings = () => {
   const savedSettings = localStorage.getItem('settings') || "{}";
-  return { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings)};
+  return {...DEFAULT_SETTINGS, ...JSON.parse(savedSettings)};
 };
 
 const SettingsContext = createContext(null);
 
-export function SettingsProvider({ children }) {
+export function SettingsProvider({children}) {
   const [settings, setSettings] = useState(initializeSettings);
 
   const updateSetting = (key, value) => {
     setSettings(prev => {
-      const newSettings = { ...prev };
+      const newSettings = {...prev};
       if (Array.isArray(key)) {
         let current = newSettings;
         for (let i = 0; i < key.length - 1; i++) {
@@ -101,4 +107,4 @@ export function useSettings() {
     throw new Error('useSettings must be used within a SettingsProvider');
   }
   return context;
-} 
+}
