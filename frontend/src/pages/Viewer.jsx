@@ -276,26 +276,24 @@ function Viewer() {
           flexDirection: 'column'
         }}>
           {/* Add PDF controls */}
-          <Box sx={{ 
-            p: 1, 
-            display: 'flex', 
+          <Box sx={{
+            p: 1,
+            display: 'flex',
             alignItems: 'center',
             bgcolor: 'white',
             borderBottom: '1px solid #e0e0e0'
           }}>
-            <Typography variant="body2" sx={{ mr: 2 }}>Zoom:</Typography>
+            <Typography variant="body2" sx={{mr: 2}}>Zoom:</Typography>
             <Slider
               value={scale}
               onChange={handleScaleChange}
               min={0.5}
               max={3}
               step={0.1}
-              valueLabelDisplay="auto"
-              valueLabelFormat={value => `${Math.round(value * 100)}%`}
-              sx={{ width: 200 }}
+              sx={{width: 200}}
             />
           </Box>
-          
+
           <Paper
             onMouseUp={handleTextSelection}
             onDrop={handleDrop}
