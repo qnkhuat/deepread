@@ -8,6 +8,12 @@ let mainWindow;
 let backendProcess;
 let backendPort = 8345; // Default port, will be dynamically assigned if busy
 
+const logToFile = (message) => {
+  const timestamp = new Date().toISOString();
+  const logMessage = `${timestamp} - ${message}\n`;
+  fs.appendFileSync('/Users/earther/tmp/log.txt', logMessage);
+};
+
 // Function to find an available port
 async function findAvailablePort(startPort, endPort) {
   try {
@@ -46,27 +52,50 @@ async function startBackend() {
     backendPort = await findAvailablePort(8345, 8999);
     console.log(`Using port ${backendPort} for backend`);
 
-    console.log('Starting backend in production mode...');
+    console.log('Starting Python backend in production mode...');
 
-    const backendPath = path.join(process.resourcesPath, 'backend', 'main.js');
+    // Path to the Python executable in the resources directory
+    let backendExePath;
+    if (process.platform === 'darwin') {
+      // macOS
+      backendExePath = path.join(process.resourcesPath, 'backend', 'backend');
+    } else if (process.platform === 'win32') {
+      // Windows
+      backendExePath = path.join(process.resourcesPath, 'backend', 'backend.exe');
+    } else {
+      // Linux or other platforms
+      backendExePath = path.join(process.resourcesPath, 'backend', 'backend');
+    }
+    console.log("BACKEND PATH: ", backendExePath);
+    logToFile("BACKEND PATH: " + backendExePath + "PORT: " + backendPort);
+
+    // Make sure the executable has proper permissions on macOS/Linux
+    if (process.platform !== 'win32') {
+      try {
+        fs.chmodSync(backendExePath, '755');
+        console.log('Set executable permissions for backend');
+      } catch (error) {
+        console.error('Failed to set executable permissions: ' + error);
+      }
+    }
 
     try {
-      backendProcess = spawn('node', [backendPath], {
+      // Spawn the Python executable with the port as an environment variable
+      backendProcess = spawn(backendExePath, [], {
         stdio: 'inherit',
-        cwd: path.dirname(backendPath),
         env: {
           ...process.env,
-          NODE_ENV: 'production',
-          PORT: backendPort.toString() // Pass the port to the backend
+          PORT: backendPort.toString()
         }
       });
       console.log('Backend process spawned with PID: ' + backendProcess.pid);
+      logToFile('Backend process spawned with PID: ' + backendProcess.pid);
     } catch (error) {
       console.error('Failed to spawn backend process: ' + error);
+      logToFile('Failed to spawn backend process: ' + error);
       app.quit();
       return;
     }
-    fs.appendFileSync("/Users/earther/tmp/log.txt", `Backend port: ${backendPort}\n`);
 
     backendProcess.on('error', (error) => {
       console.error('Backend process error: ' + error);
@@ -80,10 +109,14 @@ async function startBackend() {
         app.quit();
       }
     });
+  } else {
+    // In development mode, the backend is started via npm script
+    console.log('In development mode, backend should be started via npm script');
   }
 
   waitForBackend().catch(err => {
     console.error('Backend startup error: ' + err);
+    logToFile('Backend startup error: ' + err);
     if (backendProcess) backendProcess.kill();
     app.quit();
   });

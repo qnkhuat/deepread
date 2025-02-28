@@ -5,9 +5,13 @@
   "description": "Deep Read with LLM support",
   "main": "app/main.js",
   "scripts": {
-    "dev:electron": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm run dev\" \"electron .\"",
-    "dev:web": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm run dev\"",
-    "build": "cd frontend && npm run build && cd ../backend && npm install --production && cd .. && electron-builder"
+    "backend:activate": "cd backend && source venv/bin/activate",
+    "dev:electron": "concurrently \"cd frontend && npm run dev\" \"cd backend && python app.py\" \"electron .\"",
+    "dev:web": "concurrently \"cd frontend && npm run dev\" \"npm run backend:activate && cd backend && fastapi dev main.py --port=8345\"",
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "build:backend": "cd backend && source venv/bin/activate && python build.py",
+    "build": "npm run build:frontend && npm run build:backend && npm run package",
+    "package": "electron-builder "
   },
   "build": {
     "appId": "com.deepread.app",
@@ -22,12 +26,11 @@
     ],
     "extraResources": [
       {
-        "from": "backend",
+        "from": "backend/dist",
         "to": "backend",
         "filter": [
           "**/*",
           "!__pycache__/*",
-          "!.env",
           "!.env.example"
         ]
       }

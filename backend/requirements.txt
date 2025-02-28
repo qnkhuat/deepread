@@ -1,0 +1,5 @@
+fastapi[standard]==0.115.8
+openai==1.65.1
+pymupdf==1.25.3
+python-dotenv==1.0.0
+pyinstaller==6.12.0
