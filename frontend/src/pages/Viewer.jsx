@@ -303,6 +303,51 @@ function Viewer() {
     }
   };
 
+  const handleEditMessage = async (index, newContent) => {
+    // Create a copy of the messages array
+    const updatedMessages = [...messages];
+    
+    // Update the content of the message at the specified index
+    updatedMessages[index] = {
+      ...updatedMessages[index],
+      content: newContent
+    };
+    
+    // Remove all messages after the edited message
+    const truncatedMessages = updatedMessages.slice(0, index + 1);
+    
+    // Update the messages state
+    setMessages(truncatedMessages);
+    
+    // If this isn't the last message, we need to regenerate the response
+    if (index < messages.length - 1) {
+      try {
+        // Add a placeholder message for the assistant's response
+        const assistantPlaceholder = {content: '', role: 'assistant'};
+        setMessages(prev => [...prev, assistantPlaceholder]);
+        
+        // Use the streaming function with a callback to update the placeholder
+        await sendChatRequest(truncatedMessages, (chunk, fullContent) => {
+          setMessages(prevMessages => {
+            const updatedMessages = [...prevMessages];
+            // Update the last message (which is the placeholder)
+            updatedMessages[updatedMessages.length - 1] = {
+              content: fullContent,
+              role: 'assistant'
+            };
+            return updatedMessages;
+          });
+        });
+      } catch (error) {
+        console.error('Error regenerating response:', error);
+        setMessages(prevMessages => [...prevMessages, {
+          content: 'Sorry, there was an error processing your edited message. Please try again.',
+          role: 'assistant'
+        }]);
+      }
+    }
+  };
+
   const renderDropZone = () => (
     <Box
       sx={{
@@ -455,6 +500,7 @@ function Viewer() {
               handleSendMessage={handleSendMessage}
               suggestedPrompts={suggestedPrompts}
               handleSuggestedPrompt={handleSuggestedPrompt}
+              onEditMessage={handleEditMessage}
             />
           </Paper>
         </Box>
