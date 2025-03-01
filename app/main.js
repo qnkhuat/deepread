@@ -26,18 +26,29 @@ async function findAvailablePort(startPort, endPort) {
   }
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function waitForBackend(maxAttempts = 30) {
   console.log('Waiting for backend to become available...');
   for (let i = 0; i < maxAttempts; i++) {
-    console.log(`Attempt ${i + 1}/${maxAttempts} to connect to backend at port ${backendPort}...`);
-    const response = await fetch(`http://localhost:${backendPort}`);
-    if (response.ok) {
-      console.log('Backend is up and running!');
-      return;
-    } else {
-      console.error(`Backend responded with status ${response.status}`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+
+    try {
+      console.log(`Attempt ${i + 1}/${maxAttempts} to connect to backend at port ${backendPort}...`);
+      const response = await fetch(`http://localhost:${backendPort}`);
+      if (response.ok) {
+        console.log('Backend is up and running!');
+        return;
+      } else {
+        console.error(`Backend responded with status ${response.status}`);
+        await sleep(1000);
+      }
+    } catch (error) {
+      console.error(`Backend connection error: ${error}`);
+      await sleep(1000);
     }
+
   }
   console.error('Backend failed to start within 30 seconds');
   if (backendProcess) backendProcess.kill();
@@ -65,7 +76,6 @@ async function startBackend() {
       backendExePath = path.join(process.resourcesPath, 'backend', 'backend');
     }
     console.log("BACKEND PATH: ", backendExePath);
-    logToFile("BACKEND PATH: " + backendExePath + "PORT: " + backendPort);
 
     // Make sure the executable has proper permissions on macOS/Linux
     if (process.platform !== 'win32') {
@@ -87,10 +97,8 @@ async function startBackend() {
         }
       });
       console.log('Backend process spawned with PID: ' + backendProcess.pid);
-      logToFile('Backend process spawned with PID: ' + backendProcess.pid);
     } catch (error) {
       console.error('Failed to spawn backend process: ' + error);
-      logToFile('Failed to spawn backend process: ' + error);
       app.quit();
       return;
     }
@@ -114,7 +122,6 @@ async function startBackend() {
 
   waitForBackend().catch(err => {
     console.error('Backend startup error: ' + err);
-    logToFile('Backend startup error: ' + err);
     if (backendProcess) backendProcess.kill();
     app.quit();
   });

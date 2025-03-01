@@ -111,20 +111,14 @@ const styles = {
 function Chat({messages, inputMessage, setInputMessage, handleSendMessage, suggestedPrompts = [], handleSuggestedPrompt, onEditMessage}) {
   const messageEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
-  const [isTyping, setIsTyping] = useState(false);
+  const lastUserMessageRef = useRef(null);
   const [editingIndex, setEditingIndex] = useState(null);
   const [editedMessage, setEditedMessage] = useState('');
-  const lastUserMessageRef = useRef(null);
   const [shouldScrollToLastUserMessage, setShouldScrollToLastUserMessage] = useState(false);
 
-  useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isStreaming) {
-      setIsTyping(true);
-    } else {
-      setIsTyping(false);
-    }
-  }, [messages]);
+  const isTyping = messages.some(message => 
+    message.role === 'assistant' && message.isStreaming
+  );
 
   useEffect(() => {
     if (shouldScrollToLastUserMessage && lastUserMessageRef.current) {
@@ -134,6 +128,9 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
   }, [shouldScrollToLastUserMessage]);
 
   const wrappedHandleSendMessage = (e) => {
+    e.preventDefault();
+    if (!inputMessage.trim() || isTyping) return;
+    
     handleSendMessage(e);
     setShouldScrollToLastUserMessage(true);
   };
