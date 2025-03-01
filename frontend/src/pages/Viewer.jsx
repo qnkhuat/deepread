@@ -71,7 +71,7 @@ function Viewer() {
   const {settings, updateSetting} = useSettings();
   const [suggestedPrompts, setSuggestedPrompts] = useState([]);
 
-  const sendChatRequest = async (messages) => {
+  const sendChatRequest = async (messages, onChunk) => {
     console.log(settings);
     const response = await fetch(`${backendURL()}/api/chat`, {
       method: 'POST',
@@ -93,7 +93,43 @@ function Viewer() {
       throw new Error(error.message || 'Failed to get chat response');
     }
 
-    return response.json();
+    // Handle streaming response
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullContent = '';
+
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+
+      const text = decoder.decode(value);
+      const lines = text.split('\n\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.substring(6));
+
+            if (data.error) {
+              throw new Error(data.error);
+            }
+
+            if (data.content) {
+              fullContent += data.content;
+              if (onChunk) onChunk(data.content, fullContent);
+            }
+
+            if (data.done) {
+              break;
+            }
+          } catch (e) {
+            console.error('Error parsing SSE data:', e);
+          }
+        }
+      }
+    }
+
+    return {content: fullContent};
   }
 
   const handleFileUpload = async (file) => {
@@ -121,8 +157,6 @@ function Viewer() {
           'List the main conclusions'
         ]);
 
-        // Just set the document content without adding a message
-        // The suggested prompts will be shown separately in the UI
         setMessages(initialMessages);
       } catch (error) {
         console.error('Error processing file:', error);
@@ -175,19 +209,23 @@ function Viewer() {
     setSuggestedPrompts([]);
 
     try {
-      // Use the new function
-      const data = await sendChatRequest(newMessages);
-      setMessages(prevMessages => [...prevMessages, {content: data.content, role: 'assistant'}]);
+      // Add a placeholder message for the assistant's response
+      const assistantPlaceholder = {content: '', role: 'assistant'};
+      setMessages(prevMessages => [...prevMessages, assistantPlaceholder]);
 
-      // Optionally set new suggested prompts after getting a response
-      if (pdfContent) {
-        setSuggestedPrompts([
-          'Explain this in simpler terms',
-          'Provide more details',
-          'What are the limitations?',
-          'Summarize the key points'
-        ]);
-      }
+      // Use the streaming function with a callback to update the placeholder
+      await sendChatRequest(newMessages, (chunk, fullContent) => {
+        setMessages(prevMessages => {
+          const updatedMessages = [...prevMessages];
+          // Update the last message (which is the placeholder)
+          updatedMessages[updatedMessages.length - 1] = {
+            content: fullContent,
+            role: 'assistant'
+          };
+          return updatedMessages;
+        });
+      });
+
     } catch (error) {
       console.error('Error getting chat response:', error);
       setMessages(prevMessages => [...prevMessages, {
@@ -236,14 +274,22 @@ function Viewer() {
 
       setMessages(newMessages);
 
-      // Use the sendChatRequest function
-      const data = await sendChatRequest(newMessages);
+      // Add a placeholder message for the assistant's response
+      const assistantPlaceholder = {content: '', role: 'assistant'};
+      setMessages(prevMessages => [...prevMessages, assistantPlaceholder]);
 
-      // Add the response to chat messages
-      setMessages(prevMessages => [...prevMessages, {
-        content: data.content,
-        role: 'assistant'
-      }]);
+      // Use the streaming function with a callback to update the placeholder
+      await sendChatRequest(newMessages, (chunk, fullContent) => {
+        setMessages(prevMessages => {
+          const updatedMessages = [...prevMessages];
+          // Update the last message (which is the placeholder)
+          updatedMessages[updatedMessages.length - 1] = {
+            content: fullContent,
+            role: 'assistant'
+          };
+          return updatedMessages;
+        });
+      });
 
       // Optionally set new suggested prompts based on the response
       setSuggestedPrompts([]);

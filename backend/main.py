@@ -1,7 +1,7 @@
 import os, json
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, Query, Form
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import openai  # Import OpenAI library
 import pymupdf4llm
@@ -76,7 +76,7 @@ class ChatRequest(BaseModel):
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
     logger.debug(f"Chat request received for model: {request.llm_config.model_name}")
-# Prepare messages for OpenAI API
+    # Prepare messages for OpenAI API
     openai_messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
 
     # Set up the OpenAI client with the API key
@@ -84,16 +84,32 @@ async def chat(request: ChatRequest):
                             base_url=request.llm_config.config["base_url"]["value"])
     logger.debug(f"OpenAI client initialized with base URL: {request.llm_config.config['base_url']['value']}")
 
-    # Call OpenAI API with the new syntax
-    logger.debug("Sending request to OpenAI API")
-    response = client.chat.completions.create(
-        model=request.llm_config.model_name,
-        messages=openai_messages,
-    )
-    logger.debug("Received response from OpenAI API")
-
-    # Return the first reply (updated to match new response structure)
-    return {"content": response.choices[0].message.content}
+    # Call OpenAI API with streaming enabled
+    logger.debug("Sending streaming request to OpenAI API")
+    
+    async def generate():
+        try:
+            stream = client.chat.completions.create(
+                model=request.llm_config.model_name,
+                messages=openai_messages,
+                stream=True,
+            )
+            
+            # Stream the response chunks
+            for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    yield f"data: {json.dumps({'content': content})}\n\n"
+            
+            # Send a completion signal
+            yield f"data: {json.dumps({'done': True})}\n\n"
+            
+        except Exception as e:
+            logger.error(f"Streaming error: {str(e)}")
+            logger.error(traceback.format_exc())
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 # Add exception handler for uncaught exceptions
 @app.middleware("http")
