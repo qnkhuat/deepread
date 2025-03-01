@@ -3,18 +3,122 @@ import {Box, Stack, TextField, Button, Paper, Typography, CircularProgress} from
 import {useEffect, useRef, useState} from 'react';
 import EditIcon from '@mui/icons-material/Edit';
 
+const styles = {
+  container: {
+    display: 'flex', 
+    flexDirection: 'column', 
+    height: '100%'
+  },
+  messagesContainer: {
+    flexGrow: 1, 
+    overflow: 'auto', 
+    p: 2
+  },
+  message: {
+    base: {
+      p: '10px 16px',
+      borderRadius: 2,
+      maxWidth: '80%',
+      pt: 0, 
+      pb: 0,
+      position: 'relative',
+      '&:hover .edit-button': {
+        opacity: 1,
+        visibility: 'visible',
+      }
+    },
+    user: {
+      ml: 'auto',
+      mr: 0,
+      alignSelf: 'flex-end',
+      bgcolor: 'primary.main',
+      color: 'primary.contrastText',
+    },
+    assistant: {
+      ml: 0,
+      mr: 'auto',
+      alignSelf: 'flex-start',
+      bgcolor: 'background.paper',
+      color: 'text.primary',
+      boxShadow: 'none',
+    },
+    assistant_latest: {
+      height: 'calc(100vh - 250px)',
+    }
+  },
+  editButton: {
+    container: {
+      position: 'absolute', 
+      top: '50%',
+      left: -40,
+      transform: 'translateY(-50%)',
+      opacity: 0,
+      visibility: 'hidden',
+      transition: 'opacity 0.2s, visibility 0.2s',
+    },
+    button: {
+      minWidth: 'auto', 
+      p: 0.5,
+      minHeight: '24px',
+      lineHeight: 1
+    }
+  },
+  editForm: {
+    p: 1
+  },
+  editTextField: {
+    width: '100%'
+  },
+  editActions: {
+    display: 'flex', 
+    justifyContent: 'flex-end', 
+    mt: 1
+  },
+  cancelButton: {
+    mr: 1
+  },
+  loader: {
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    py: 1
+  },
+  suggestedPromptsContainer: {
+    p: 2, 
+    borderTop: '1px solid #e0e0e0'
+  },
+  suggestedPromptsTitle: {
+    mb: 1
+  },
+  suggestedPromptsList: {
+    flexWrap: 'wrap', 
+    gap: 1
+  },
+  inputContainer: {
+    p: 2, 
+    borderTop: 1, 
+    borderColor: 'divider'
+  },
+  form: {
+    display: 'flex', 
+    gap: 1
+  },
+  input: {
+    flex: 1
+  }
+};
+
 function Chat({messages, inputMessage, setInputMessage, handleSendMessage, suggestedPrompts = [], handleSuggestedPrompt, onEditMessage}) {
   const messageEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const [isTyping, setIsTyping] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [editedMessage, setEditedMessage] = useState('');
+  const lastUserMessageRef = useRef(null);
 
   useEffect(() => {
-    messageEndRef.current?.scrollIntoView({behavior: 'smooth'});
-
-    // Check if the last message is empty (indicating streaming in progress)
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content === '') {
+    if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isStreaming) {
       setIsTyping(true);
     } else {
       setIsTyping(false);
@@ -40,55 +144,38 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
   };
 
   return (
-    <Box sx={{display: 'flex', flexDirection: 'column', height: '100%'}}>
-      <Box sx={{flexGrow: 1, overflow: 'auto', p: 2}}>
+    <Box sx={styles.container}>
+      <Box sx={styles.messagesContainer} ref={messagesContainerRef}>
         <Stack spacing={2}>
           {messages.map((message, index) => {
             if (message.hide) return null;
+            
+            // Determine if this is the last user message
+            const isLastUserMessage = message.role === 'user' && 
+              messages.slice(index + 1).every(m => m.role !== 'user' || m.hide);
+            
+            const messageStyle = {
+              ...styles.message.base,
+              ...(message.role === 'user' ? styles.message.user : styles.message.assistant),
+              ...(index == messages.length - 1 && message.role === 'assistant' ? styles.message.assistant_latest : {})
+            };
             
             return (
               <Paper
                 key={index}
                 elevation={1}
-                sx={{
-                  p: '10px 16px',
-                  borderRadius: 2,
-                  maxWidth: '80%',
-                  ml: message.role === 'user' ? 'auto' : 0,
-                  mr: message.role === 'user' ? 0 : 'auto',
-                  pt: 0, pb: 0,
-                  alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start',
-                  bgcolor: message.role === 'user' ? 'primary.main' : 'background.paper',
-                  color: message.role === 'user' ? 'primary.contrastText' : 'text.primary',
-                  position: 'relative',
-                  '&:hover .edit-button': {
-                    opacity: 1,
-                    visibility: 'visible',
-                  }
-                }}
+                ref={isLastUserMessage ? lastUserMessageRef : null}
+                sx={messageStyle}
               >
                 {message.role === 'user' && (
                   <Box 
                     className="edit-button"
-                    sx={{ 
-                      position: 'absolute', 
-                      top: '50%',
-                      left: -40,
-                      transform: 'translateY(-50%)',
-                      opacity: 0,
-                      visibility: 'hidden',
-                      transition: 'opacity 0.2s, visibility 0.2s',
-                    }}
+                    sx={styles.editButton.container}
                   >
                     <Button 
                       size="small" 
                       variant="contained"
-                      sx={{ 
-                        minWidth: 'auto', 
-                        p: 0.5,
-                        minHeight: '24px',
-                        lineHeight: 1
-                      }}
+                      sx={styles.editButton.button}
                       onClick={() => handleEditMessage(index)}
                     >
                       <EditIcon fontSize="small" />
@@ -96,7 +183,7 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
                   </Box>
                 )}
                 {editingIndex === index ? (
-                  <Box sx={{ p: 1 }}>
+                  <Box sx={styles.editForm}>
                     <TextField
                       fullWidth
                       multiline
@@ -110,8 +197,8 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
                         }
                       }}
                     />
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-                      <Button size="small" onClick={cancelEdit} sx={{ mr: 1 }}>
+                    <Box sx={styles.editActions}>
+                      <Button size="small" onClick={cancelEdit} sx={styles.cancelButton}>
                         Cancel
                       </Button>
                       <Button size="small" variant="contained" onClick={() => saveEdit(index)}>
@@ -120,13 +207,14 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
                     </Box>
                   </Box>
                 ) : (
-                  message.content ? (
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
-                  ) : message.role === 'assistant' && (
-                    <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', py: 1}}>
-                      <CircularProgress size={16}/>
-                    </Box>
-                  )
+                  <>
+                    {message.content && <ReactMarkdown>{message.content}</ReactMarkdown>}
+                    {!message.content && message.role === 'assistant' && (
+                      <Box sx={styles.loader}>
+                        <CircularProgress size={16}/>
+                      </Box>
+                    )}
+                  </>
                 )}
               </Paper>
             );
@@ -136,9 +224,9 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
       </Box>
 
       {suggestedPrompts.length > 0 && (
-        <Box sx={{p: 2, borderTop: '1px solid #e0e0e0'}}>
-          <Typography variant="subtitle2" sx={{mb: 1}}>Suggested prompts:</Typography>
-          <Stack direction="row" spacing={1} sx={{flexWrap: 'wrap', gap: 1}}>
+        <Box sx={styles.suggestedPromptsContainer}>
+          <Typography variant="subtitle2" sx={styles.suggestedPromptsTitle}>Suggested prompts:</Typography>
+          <Stack direction="row" spacing={1} sx={styles.suggestedPromptsList}>
             {suggestedPrompts.map((prompt, index) => (
               <Button
                 key={index}
@@ -155,12 +243,12 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
 
       <Paper
         elevation={2}
-        sx={{p: 2, borderTop: 1, borderColor: 'divider'}}
+        sx={styles.inputContainer}
       >
         <Box
           component="form"
           onSubmit={handleSendMessage}
-          sx={{display: 'flex', gap: 1}}
+          sx={styles.form}
         >
           <TextField
             value={inputMessage}
@@ -169,11 +257,10 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
             multiline
             maxRows={4}
             size="small"
-            sx={{flex: 1}}
+            sx={styles.input}
             disabled={isTyping}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
                 handleSendMessage(e);
               }
             }}

@@ -210,7 +210,7 @@ function Viewer() {
 
     try {
       // Add a placeholder message for the assistant's response
-      const assistantPlaceholder = {content: '', role: 'assistant'};
+      const assistantPlaceholder = {content: '', role: 'assistant', isStreaming: true};
       setMessages(prevMessages => [...prevMessages, assistantPlaceholder]);
 
       // Use the streaming function with a callback to update the placeholder
@@ -220,17 +220,29 @@ function Viewer() {
           // Update the last message (which is the placeholder)
           updatedMessages[updatedMessages.length - 1] = {
             content: fullContent,
-            role: 'assistant'
+            role: 'assistant',
+            isStreaming: true
           };
           return updatedMessages;
         });
+      });
+
+      // Mark message as no longer streaming when complete
+      setMessages(prevMessages => {
+        const updatedMessages = [...prevMessages];
+        updatedMessages[updatedMessages.length - 1] = {
+          ...updatedMessages[updatedMessages.length - 1],
+          isStreaming: false
+        };
+        return updatedMessages;
       });
 
     } catch (error) {
       console.error('Error getting chat response:', error);
       setMessages(prevMessages => [...prevMessages, {
         content: 'Sorry, there was an error processing your message. Please try again.',
-        role: 'assistant'
+        role: 'assistant',
+        isStreaming: false
       }]);
     }
   };
@@ -275,7 +287,7 @@ function Viewer() {
       setMessages(newMessages);
 
       // Add a placeholder message for the assistant's response
-      const assistantPlaceholder = {content: '', role: 'assistant'};
+      const assistantPlaceholder = {content: '', role: 'assistant', isStreaming: true};
       setMessages(prevMessages => [...prevMessages, assistantPlaceholder]);
 
       // Use the streaming function with a callback to update the placeholder
@@ -285,10 +297,21 @@ function Viewer() {
           // Update the last message (which is the placeholder)
           updatedMessages[updatedMessages.length - 1] = {
             content: fullContent,
-            role: 'assistant'
+            role: 'assistant',
+            isStreaming: true
           };
           return updatedMessages;
         });
+      });
+
+      // Mark message as no longer streaming when complete
+      setMessages(prevMessages => {
+        const updatedMessages = [...prevMessages];
+        updatedMessages[updatedMessages.length - 1] = {
+          ...updatedMessages[updatedMessages.length - 1],
+          isStreaming: false
+        };
+        return updatedMessages;
       });
 
       // Optionally set new suggested prompts based on the response
@@ -297,7 +320,8 @@ function Viewer() {
       console.error('Error processing prompt:', error);
       setMessages(prevMessages => [...prevMessages, {
         content: 'Sorry, there was an error processing your request. Please try again.',
-        role: 'assistant'
+        role: 'assistant',
+        isStreaming: false
       }]);
       setSuggestedPrompts([]);
     }
@@ -323,7 +347,7 @@ function Viewer() {
     if (index < messages.length - 1) {
       try {
         // Add a placeholder message for the assistant's response
-        const assistantPlaceholder = {content: '', role: 'assistant'};
+        const assistantPlaceholder = {content: '', role: 'assistant', isStreaming: true};
         setMessages(prev => [...prev, assistantPlaceholder]);
         
         // Use the streaming function with a callback to update the placeholder
@@ -333,16 +357,28 @@ function Viewer() {
             // Update the last message (which is the placeholder)
             updatedMessages[updatedMessages.length - 1] = {
               content: fullContent,
-              role: 'assistant'
+              role: 'assistant',
+              isStreaming: true
             };
             return updatedMessages;
           });
+        });
+        
+        // Mark message as no longer streaming when complete
+        setMessages(prevMessages => {
+          const updatedMessages = [...prevMessages];
+          updatedMessages[updatedMessages.length - 1] = {
+            ...updatedMessages[updatedMessages.length - 1],
+            isStreaming: false
+          };
+          return updatedMessages;
         });
       } catch (error) {
         console.error('Error regenerating response:', error);
         setMessages(prevMessages => [...prevMessages, {
           content: 'Sorry, there was an error processing your edited message. Please try again.',
-          role: 'assistant'
+          role: 'assistant',
+          isStreaming: false
         }]);
       }
     }
