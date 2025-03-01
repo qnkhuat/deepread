@@ -63,7 +63,19 @@ function TopBar() {
       }}>
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <img src="/icon/png/64x64.png" alt="DeepRead Logo" style={{ height: '32px', width: 'auto' }} />
+            {window.electron ? (
+              <img 
+                src={window.electron.getAssetPath ? window.electron.getAssetPath('icon/png/64x64.png') : './icon/png/64x64.png'} 
+                alt="DeepRead Logo" 
+                style={{ height: '32px', width: 'auto' }} 
+              />
+            ) : (
+              <img 
+                src="/icon/png/64x64.png" 
+                alt="DeepRead Logo" 
+                style={{ height: '32px', width: 'auto' }} 
+              />
+            )}
           </Box>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
