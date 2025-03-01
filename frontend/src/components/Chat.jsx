@@ -115,6 +115,7 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
   const [editingIndex, setEditingIndex] = useState(null);
   const [editedMessage, setEditedMessage] = useState('');
   const lastUserMessageRef = useRef(null);
+  const [shouldScrollToLastUserMessage, setShouldScrollToLastUserMessage] = useState(false);
 
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
@@ -124,6 +125,18 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
       setIsTyping(false);
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (shouldScrollToLastUserMessage && lastUserMessageRef.current) {
+      lastUserMessageRef.current.scrollIntoView({ behavior: 'smooth' });
+      setShouldScrollToLastUserMessage(false);
+    }
+  }, [shouldScrollToLastUserMessage]);
+
+  const wrappedHandleSendMessage = (e) => {
+    handleSendMessage(e);
+    setShouldScrollToLastUserMessage(true);
+  };
 
   const handleEditMessage = (index) => {
     setEditingIndex(index);
@@ -247,7 +260,7 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
       >
         <Box
           component="form"
-          onSubmit={handleSendMessage}
+          onSubmit={wrappedHandleSendMessage}
           sx={styles.form}
         >
           <TextField
@@ -261,7 +274,7 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
             disabled={isTyping}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
-                handleSendMessage(e);
+                wrappedHandleSendMessage(e);
               }
             }}
           />
