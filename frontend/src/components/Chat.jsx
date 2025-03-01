@@ -1,17 +1,17 @@
 import ReactMarkdown from 'react-markdown';
-import {Box, Stack, TextField, Button, Paper, Typography, CircularProgress} from '@mui/material';
+import {Box, Stack, TextField, Button, Paper, CircularProgress} from '@mui/material';
 import {useEffect, useRef, useState} from 'react';
 import EditIcon from '@mui/icons-material/Edit';
 
 const styles = {
   container: {
-    display: 'flex', 
-    flexDirection: 'column', 
+    display: 'flex',
+    flexDirection: 'column',
     height: '100%'
   },
   messagesContainer: {
-    flexGrow: 1, 
-    overflow: 'auto', 
+    flexGrow: 1,
+    overflow: 'auto',
     p: 2
   },
   message: {
@@ -19,7 +19,7 @@ const styles = {
       p: '10px 16px',
       borderRadius: 2,
       maxWidth: '80%',
-      pt: 0, 
+      pt: 0,
       pb: 0,
       position: 'relative',
       '&:hover .edit-button': {
@@ -48,7 +48,7 @@ const styles = {
   },
   editButton: {
     container: {
-      position: 'absolute', 
+      position: 'absolute',
       top: '50%',
       left: -40,
       transform: 'translateY(-50%)',
@@ -57,7 +57,7 @@ const styles = {
       transition: 'opacity 0.2s, visibility 0.2s',
     },
     button: {
-      minWidth: 'auto', 
+      minWidth: 'auto',
       p: 0.5,
       minHeight: '24px',
       lineHeight: 1
@@ -70,37 +70,37 @@ const styles = {
     width: '100%'
   },
   editActions: {
-    display: 'flex', 
-    justifyContent: 'flex-end', 
+    display: 'flex',
+    justifyContent: 'flex-end',
     mt: 1
   },
   cancelButton: {
     mr: 1
   },
   loader: {
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     py: 1
   },
   suggestedPromptsContainer: {
-    p: 2, 
+    p: 2,
     borderTop: '1px solid #e0e0e0'
   },
   suggestedPromptsTitle: {
     mb: 1
   },
   suggestedPromptsList: {
-    flexWrap: 'wrap', 
+    flexWrap: 'wrap',
     gap: 1
   },
   inputContainer: {
-    p: 2, 
-    borderTop: 1, 
+    p: 2,
+    borderTop: 1,
     borderColor: 'divider'
   },
   form: {
-    display: 'flex', 
+    display: 'flex',
     gap: 1
   },
   input: {
@@ -116,13 +116,13 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
   const [editedMessage, setEditedMessage] = useState('');
   const [shouldScrollToLastUserMessage, setShouldScrollToLastUserMessage] = useState(false);
 
-  const isTyping = messages.some(message => 
+  const isTyping = messages.some(message =>
     message.role === 'assistant' && message.isStreaming
   );
 
   useEffect(() => {
     if (shouldScrollToLastUserMessage && lastUserMessageRef.current) {
-      lastUserMessageRef.current.scrollIntoView({ behavior: 'smooth' });
+      lastUserMessageRef.current.scrollIntoView({behavior: 'smooth'});
       setShouldScrollToLastUserMessage(false);
     }
   }, [shouldScrollToLastUserMessage]);
@@ -130,7 +130,7 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
   const wrappedHandleSendMessage = (e) => {
     e.preventDefault();
     if (!inputMessage.trim() || isTyping) return;
-    
+
     handleSendMessage(e);
     setShouldScrollToLastUserMessage(true);
   };
@@ -159,17 +159,17 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
         <Stack spacing={2}>
           {messages.map((message, index) => {
             if (message.hide) return null;
-            
+
             // Determine if this is the last user message
-            const isLastUserMessage = message.role === 'user' && 
+            const isLastUserMessage = message.role === 'user' &&
               messages.slice(index + 1).every(m => m.role !== 'user' || m.hide);
-            
+
             const messageStyle = {
               ...styles.message.base,
               ...(message.role === 'user' ? styles.message.user : styles.message.assistant),
               ...(index == messages.length - 1 && message.role === 'assistant' ? styles.message.assistant_latest : {})
             };
-            
+
             return (
               <Paper
                 key={index}
@@ -178,12 +178,12 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
                 sx={messageStyle}
               >
                 {message.role === 'user' && (
-                  <Box 
+                  <Box
                     className="edit-button"
                     sx={styles.editButton.container}
                   >
-                    <Button 
-                      size="small" 
+                    <Button
+                      size="small"
                       variant="contained"
                       sx={styles.editButton.button}
                       onClick={() => handleEditMessage(index)}
@@ -221,7 +221,7 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
                     {message.content && <ReactMarkdown>{message.content}</ReactMarkdown>}
                     {!message.content && message.role === 'assistant' && (
                       <Box sx={styles.loader}>
-                        <CircularProgress size={16}/>
+                        <CircularProgress size={16} />
                       </Box>
                     )}
                   </>
@@ -235,14 +235,14 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
 
       {suggestedPrompts.length > 0 && (
         <Box sx={styles.suggestedPromptsContainer}>
-          <Typography variant="subtitle2" sx={styles.suggestedPromptsTitle}>Suggested prompts:</Typography>
-          <Stack direction="row" spacing={1} sx={styles.suggestedPromptsList}>
+          <Stack direction="row" sx={styles.suggestedPromptsList}>
             {suggestedPrompts.map((prompt, index) => (
               <Button
                 key={index}
                 variant="outlined"
                 size="small"
                 onClick={() => handleSuggestedPrompt(prompt)}
+                sx={{ml: 0}}
               >
                 {prompt}
               </Button>
