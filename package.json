@@ -5,9 +5,9 @@
   "description": "Deep Read with LLM support",
   "main": "app/main.js",
   "scripts": {
-    "backend:activate": "cd backend && source venv/bin/activate",
-    "dev:electron": "concurrently \"cd frontend && npm run dev\" \"cd backend && python app.py\" \"electron .\"",
-    "dev:web": "concurrently \"cd frontend && npm run dev\" \"npm run backend:activate && cd backend && fastapi dev main.py --port=8345\"",
+    "backend:start": "cd backend && source venv/bin/activate && fastapi dev main.py --port=8345",
+    "dev:electron": "concurrently -n 'frontend,backend,electron' -c 'yellow,green,blue' 'cd frontend && npm run dev' 'npm run backend:start' 'electron .'",
+    "dev:web": "concurrently -n 'frontend,backend' -c 'yellow,green' 'cd frontend && npm run dev' 'npm run backend:start'",
     "build:frontend": "cd frontend && npm install && npm run build",
     "build:backend": "cd backend && source venv/bin/activate && python build.py",
     "build": "npm run build:frontend && npm run build:backend && npm run package",

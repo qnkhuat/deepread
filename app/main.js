@@ -29,15 +29,13 @@ async function findAvailablePort(startPort, endPort) {
 async function waitForBackend(maxAttempts = 30) {
   console.log('Waiting for backend to become available...');
   for (let i = 0; i < maxAttempts; i++) {
-    try {
-      console.log(`Attempt ${i + 1}/${maxAttempts} to connect to backend at port ${backendPort}...`);
-      const response = await fetch(`http://localhost:${backendPort}`);
-      if (response.ok) {
-        console.log('Backend is up and running!');
-        return;
-      }
-    } catch (err) {
-      console.error(`Backend not ready, retrying in 1s... (${err.message})`);
+    console.log(`Attempt ${i + 1}/${maxAttempts} to connect to backend at port ${backendPort}...`);
+    const response = await fetch(`http://localhost:${backendPort}`);
+    if (response.ok) {
+      console.log('Backend is up and running!');
+      return;
+    } else {
+      console.error(`Backend responded with status ${response.status}`);
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
