@@ -69,6 +69,7 @@ function Viewer() {
   const [pdfContent, setPdfContent] = useState('');
   const [scale, setScale] = useState(1.5);
   const {settings, updateSetting} = useSettings();
+  const [suggestedPrompts, setSuggestedPrompts] = useState([]);
 
   const sendChatRequest = async (messages) => {
     console.log(settings);
@@ -113,16 +114,16 @@ function Viewer() {
         const fileData = await fileResponse.json();
         setPdfContent(fileData.content);
         messages.push(systemPrompt(fileData.content));
-        messages.push({content: `Please summarize the paper.`, role: 'user', hide: true});
-
-        // Use the new function
-        const data = await sendChatRequest(messages);
-
-        // Add the summary to chat messages
-        setMessages([
-          ...messages,
-          {content: data.content, role: 'assistant'}
+        setSuggestedPrompts([
+          'Summarize this document',
+          'Extract key findings',
+          'Explain the methodology',
+          'List the main conclusions'
         ]);
+
+        // Just set the document content without adding a message
+        // The suggested prompts will be shown separately in the UI
+        setMessages([...messages]);
       } catch (error) {
         console.error('Error processing file:', error);
         setMessages([
@@ -170,11 +171,23 @@ function Viewer() {
     const newMessages = [...messages, newUserMessage];
     setMessages(newMessages);
     setInputMessage('');
+    // Clear suggested prompts when user sends a message
+    setSuggestedPrompts([]);
 
     try {
       // Use the new function
       const data = await sendChatRequest(newMessages);
       setMessages(prevMessages => [...prevMessages, {content: data.content, role: 'assistant'}]);
+      
+      // Optionally set new suggested prompts after getting a response
+      if (pdfContent) {
+        setSuggestedPrompts([
+          'Explain this in simpler terms',
+          'Provide more details',
+          'What are the limitations?',
+          'Summarize the key points'
+        ]);
+      }
     } catch (error) {
       console.error('Error getting chat response:', error);
       setMessages(prevMessages => [...prevMessages, {
@@ -209,6 +222,39 @@ function Viewer() {
 
   const handleScaleChange = (event, newValue) => {
     setScale(newValue);
+  };
+
+  const handleSuggestedPrompt = async (promptText) => {
+    try {
+      // Clear suggested prompts once one is selected
+      setSuggestedPrompts([]);
+      
+      const newMessages = [...messages, {
+        content: promptText,
+        role: 'user'
+      }];
+      
+      setMessages(newMessages);
+      
+      // Use the sendChatRequest function
+      const data = await sendChatRequest(newMessages);
+      
+      // Add the response to chat messages
+      setMessages(prevMessages => [...prevMessages, {
+        content: data.content,
+        role: 'assistant'
+      }]);
+      
+      // Optionally set new suggested prompts based on the response
+      setSuggestedPrompts([]);
+    } catch (error) {
+      console.error('Error processing prompt:', error);
+      setMessages(prevMessages => [...prevMessages, {
+        content: 'Sorry, there was an error processing your request. Please try again.',
+        role: 'assistant'
+      }]);
+      setSuggestedPrompts([]);
+    }
   };
 
   const renderDropZone = () => (
@@ -361,6 +407,8 @@ function Viewer() {
               inputMessage={inputMessage}
               setInputMessage={setInputMessage}
               handleSendMessage={handleSendMessage}
+              suggestedPrompts={suggestedPrompts}
+              handleSuggestedPrompt={handleSuggestedPrompt}
             />
           </Paper>
         </Box>
