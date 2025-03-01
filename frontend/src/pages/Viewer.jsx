@@ -113,7 +113,7 @@ function Viewer() {
         });
         const fileData = await fileResponse.json();
         setPdfContent(fileData.content);
-        messages.push(systemPrompt(fileData.content));
+        const initialMessages = [systemPrompt(fileData.content)];
         setSuggestedPrompts([
           'Summarize this document',
           'Extract key findings',
@@ -123,7 +123,7 @@ function Viewer() {
 
         // Just set the document content without adding a message
         // The suggested prompts will be shown separately in the UI
-        setMessages([...messages]);
+        setMessages(initialMessages);
       } catch (error) {
         console.error('Error processing file:', error);
         setMessages([
@@ -178,7 +178,7 @@ function Viewer() {
       // Use the new function
       const data = await sendChatRequest(newMessages);
       setMessages(prevMessages => [...prevMessages, {content: data.content, role: 'assistant'}]);
-      
+
       // Optionally set new suggested prompts after getting a response
       if (pdfContent) {
         setSuggestedPrompts([
@@ -228,23 +228,23 @@ function Viewer() {
     try {
       // Clear suggested prompts once one is selected
       setSuggestedPrompts([]);
-      
+
       const newMessages = [...messages, {
         content: promptText,
         role: 'user'
       }];
-      
+
       setMessages(newMessages);
-      
+
       // Use the sendChatRequest function
       const data = await sendChatRequest(newMessages);
-      
+
       // Add the response to chat messages
       setMessages(prevMessages => [...prevMessages, {
         content: data.content,
         role: 'assistant'
       }]);
-      
+
       // Optionally set new suggested prompts based on the response
       setSuggestedPrompts([]);
     } catch (error) {
