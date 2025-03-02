@@ -1,6 +1,9 @@
 import { useSettings } from '../contexts/SettingsContext';
-import { Container, Modal, TextField, IconButton, Select, MenuItem, ListSubheader, Box, Typography, Button, Menu } from '@mui/material';
+import { Container, Modal, TextField, IconButton, Select, MenuItem, ListSubheader, Box, Typography, Button, Menu, InputAdornment } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import SearchIcon from '@mui/icons-material/Search';
 import { useState, useEffect } from 'react';
 
 const backendURL = () => {
@@ -16,6 +19,9 @@ function TopBar() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [expandedProviders, setExpandedProviders] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredModels, setFilteredModels] = useState({});
 
   // Check if any provider is configured
   const isAnyProviderConfigured = () => {
@@ -110,6 +116,7 @@ function TopBar() {
   const handleClose = () => {
     setAnchorEl(null);
     setOpen(false);
+    setSearchTerm('');
   };
 
   const isProviderConfigured = (providerName) => {
@@ -140,6 +147,48 @@ function TopBar() {
     
     // Fetch models again
     await fetchModels();
+  };
+
+  // Initialize expanded state for providers
+  useEffect(() => {
+    const initialExpandedState = {};
+    Object.keys(settings.providers).forEach(providerName => {
+      initialExpandedState[providerName] = true; // Start expanded by default
+    });
+    setExpandedProviders(initialExpandedState);
+  }, [settings.providers]);
+
+  const toggleProviderExpanded = (providerName, event) => {
+    event.stopPropagation(); // Prevent menu from closing
+    setExpandedProviders(prev => ({
+      ...prev,
+      [providerName]: !prev[providerName]
+    }));
+  };
+
+  // Filter models based on search term
+  useEffect(() => {
+    const filtered = {};
+    
+    Object.entries(settings.providers).forEach(([providerName, providerInfo]) => {
+      if (providerInfo.models && providerInfo.models.length > 0) {
+        filtered[providerName] = providerInfo.models.filter(model => 
+          model.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      } else {
+        filtered[providerName] = [];
+      }
+    });
+    
+    setFilteredModels(filtered);
+  }, [settings.providers, searchTerm]);
+
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const clearSearch = () => {
+    setSearchTerm('');
   };
 
   return (
@@ -179,25 +228,96 @@ function TopBar() {
             anchorEl={anchorEl}
             open={open}
             onClose={handleClose}
+            PaperProps={{
+              style: {
+                maxHeight: 400,
+                width: '250px',
+              },
+            }}
           >
-            {Object.entries(settings.providers).map(([providerName, providerInfo]) => (
-              <div key={providerName}>
-                <ListSubheader>{providerName}</ListSubheader>
-                {(providerInfo.models || []).map(modelName => (
-                  <MenuItem 
-                    key={modelName}
-                    onClick={() => handleModelSelect(providerName, modelName)}
+            <Box sx={{ p: 1, position: 'sticky', top: 0, bgcolor: 'background.paper', zIndex: 1 }}>
+              <TextField
+                placeholder="Search models..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                variant="outlined"
+                size="small"
+                fullWidth
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ mb: 1 }}
+              />
+            </Box>
+            
+            {Object.entries(settings.providers).map(([providerName, providerInfo]) => {
+              // Skip providers with no matching models when searching
+              if (searchTerm && filteredModels[providerName]?.length === 0) {
+                return null;
+              }
+              
+              return (
+                <div key={providerName}>
+                  <ListSubheader 
+                    sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      cursor: 'pointer'
+                    }}
+                    onClick={(e) => toggleProviderExpanded(providerName, e)}
                   >
-                    {modelName}
-                  </MenuItem>
-                ))}
-                {(!providerInfo.models || providerInfo.models.length === 0) && (
-                  <MenuItem disabled>
-                    {isProviderConfigured(providerName) ? 'Loading models...' : 'Configure provider first'}
-                  </MenuItem>
-                )}
-              </div>
-            ))}
+                    {providerName}
+                    {expandedProviders[providerName] ? 
+                      <ExpandLessIcon fontSize="small" /> : 
+                      <ExpandMoreIcon fontSize="small" />
+                    }
+                  </ListSubheader>
+                  
+                  {expandedProviders[providerName] && (
+                    <>
+                      {searchTerm ? (
+                        // Show filtered models when searching
+                        filteredModels[providerName]?.map(modelName => (
+                          <MenuItem 
+                            key={modelName}
+                            onClick={() => handleModelSelect(providerName, modelName)}
+                          >
+                            {modelName}
+                          </MenuItem>
+                        ))
+                      ) : (
+                        // Show all models when not searching
+                        (providerInfo.models || []).map(modelName => (
+                          <MenuItem 
+                            key={modelName}
+                            onClick={() => handleModelSelect(providerName, modelName)}
+                          >
+                            {modelName}
+                          </MenuItem>
+                        ))
+                      )}
+                      
+                      {(!providerInfo.models || providerInfo.models.length === 0) && (
+                        <MenuItem disabled>
+                          {isProviderConfigured(providerName) ? 'Loading models...' : 'Configure provider first'}
+                        </MenuItem>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+            
+            {searchTerm && Object.values(filteredModels).every(models => models.length === 0) && (
+              <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
+                No models match your search
+              </Box>
+            )}
           </Menu>
           <IconButton 
             onClick={handleOpenConfig}

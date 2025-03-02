@@ -107,6 +107,7 @@ async def get_available_models(provider_config: ProviderConfig):
     client = config_to_client(provider_config.provider_name, provider_config.config)
     # Fetch models using the OpenAI-compatible API
     models_response = client.models.list()
+    print("MODELS: ", models_response)
     models = [model.id for model in models_response.data]
 
     return {"provider": provider_config.provider_name, "models": models}
