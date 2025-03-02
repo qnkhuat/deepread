@@ -1,7 +1,13 @@
 import { useSettings } from '../contexts/SettingsContext';
 import { Container, Modal, TextField, IconButton, Select, MenuItem, ListSubheader, Box, Typography, Button, Menu } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+const backendURL = () => {
+  return window.electron
+    ? `http://localhost:${window.electron.getBackendPort()}`
+    : 'http://localhost:8345';
+}
 
 function TopBar() {
   const { settings, updateSetting } = useSettings();
@@ -9,6 +15,74 @@ function TopBar() {
   const [tempSettings, setTempSettings] = useState({});
   const [anchorEl, setAnchorEl] = useState(null);
   const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Check if any provider is configured
+  const isAnyProviderConfigured = () => {
+    return Object.keys(settings.providers).some(providerName => 
+      isProviderConfigured(providerName)
+    );
+  };
+
+  // Fetch models only for configured providers that don't have models cached
+  const fetchModels = async () => {
+    setIsLoading(true);
+    try {
+      for (const [providerName, providerInfo] of Object.entries(settings.providers)) {
+        // Check if provider is configured and doesn't have models cached
+        if (isProviderConfigured(providerName) && 
+            (!providerInfo.models || providerInfo.models.length === 0)) {
+          const response = await fetch(`${backendURL()}/api/models`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              provider_name: providerName,
+              config: providerInfo.config
+            }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.models && Array.isArray(data.models)) {
+              updateSetting(['providers', providerName, 'models'], data.models);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching models:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Show config modal if no provider is configured or select first available model
+  useEffect(() => {
+    if (!isAnyProviderConfigured()) {
+      handleOpenConfig();
+    } else {
+      fetchModels().then(() => {
+        // After fetching models, select the first available model if none is selected
+        if (!settings.current_model) {
+          selectFirstAvailableModel();
+        }
+      });
+    }
+  }, []);
+
+  // Function to select the first available model
+  const selectFirstAvailableModel = () => {
+    for (const [providerName, providerInfo] of Object.entries(settings.providers)) {
+      if (isProviderConfigured(providerName) && 
+          providerInfo.models && 
+          providerInfo.models.length > 0) {
+        updateSetting('current_model', [providerName, providerInfo.models[0]]);
+        return;
+      }
+    }
+  };
 
   const handleOpenConfig = () => {
     setTempSettings(JSON.parse(JSON.stringify(settings.providers)));
@@ -24,6 +98,8 @@ function TopBar() {
       });
     });
     setConfigOpen(false);
+    // Fetch models after saving new configurations
+    fetchModels();
   };
 
   const handleClick = (event) => {
@@ -51,6 +127,19 @@ function TopBar() {
       updateSetting('current_model', [providerName, modelName]);
     }
     handleClose();
+  };
+
+  // Add a button to refresh models in the settings modal
+  const handleRefreshModels = async () => {
+    // Clear cached models
+    Object.keys(settings.providers).forEach(providerName => {
+      if (isProviderConfigured(providerName)) {
+        updateSetting(['providers', providerName, 'models'], []);
+      }
+    });
+    
+    // Fetch models again
+    await fetchModels();
   };
 
   return (
@@ -84,7 +173,7 @@ function TopBar() {
             onClick={handleClick}
             variant="outlined"
           >
-            {settings.current_model[0]} - {settings.current_model[1]}
+            {settings.current_model ? `${settings.current_model[0]} - ${settings.current_model[1]}` : 'Select a model'}
           </Button>
           <Menu
             anchorEl={anchorEl}
@@ -94,7 +183,7 @@ function TopBar() {
             {Object.entries(settings.providers).map(([providerName, providerInfo]) => (
               <div key={providerName}>
                 <ListSubheader>{providerName}</ListSubheader>
-                {providerInfo.models.map(modelName => (
+                {(providerInfo.models || []).map(modelName => (
                   <MenuItem 
                     key={modelName}
                     onClick={() => handleModelSelect(providerName, modelName)}
@@ -102,6 +191,11 @@ function TopBar() {
                     {modelName}
                   </MenuItem>
                 ))}
+                {(!providerInfo.models || providerInfo.models.length === 0) && (
+                  <MenuItem disabled>
+                    {isProviderConfigured(providerName) ? 'Loading models...' : 'Configure provider first'}
+                  </MenuItem>
+                )}
               </div>
             ))}
           </Menu>
@@ -163,9 +257,25 @@ function TopBar() {
               ))}
             </Box>
           ))}
-          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-            <Button variant="outlined" onClick={() => setConfigOpen(false)}>Cancel</Button>
-            <Button variant="contained" onClick={handleSave}>Save</Button>
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+            <Button 
+              variant="outlined" 
+              onClick={handleRefreshModels}
+              disabled={isLoading}
+            >
+              Refresh Models
+            </Button>
+            <Box>
+              <Button variant="outlined" onClick={() => setConfigOpen(false)}>Cancel</Button>
+              <Button 
+                variant="contained" 
+                onClick={handleSave}
+                disabled={isLoading}
+                sx={{ ml: 1 }}
+              >
+                {isLoading ? 'Saving...' : 'Save'}
+              </Button>
+            </Box>
           </Box>
         </Box>
       </Modal>

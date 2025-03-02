@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import FastAPI, UploadFile, File, Query, Form
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-import openai  # Import OpenAI library
+import openai
 import pymupdf4llm
 import pymupdf
 from pydantic import BaseModel
@@ -13,20 +13,21 @@ import traceback
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-# Set up logging configuration
-log_file_path = os.path.expanduser("~/tmp/log.txt")
-os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(log_file_path),
-        logging.StreamHandler()
-    ]
-)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+def config_to_client(provider_name: str, config: dict):
+    api_key = config["api_key"]["value"]
+    base_url = config["base_url"]["value"]
+    print("DICT: ", config)
+    if provider_name == "anthropic":
+        return openai.OpenAI(api_key=api_key,
+                             base_url=base_url,
+                             default_headers={"anthropic-version": "2023-06-01",
+                                              "x-api-key": api_key})
+    else:
+        return openai.OpenAI(api_key=api_key, base_url=base_url)
 
 # Add CORS middleware
 app.add_middleware(
@@ -39,14 +40,11 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    logger.debug("Root endpoint called")
     return {"message": "Hello World"}
 
 @app.post("/api/to_markdown")
 async def convert_pdf_to_markdown(file: UploadFile = File(...)):
-    logger.debug(f"PDF to markdown conversion requested for file: {file.filename}")
     if not file.filename.endswith('.pdf'):
-        logger.warning(f"Invalid file format: {file.filename}")
         return JSONResponse(
             status_code=400,
             content={"message": "Only PDF files are allowed"}
@@ -55,38 +53,29 @@ async def convert_pdf_to_markdown(file: UploadFile = File(...)):
 # Read and save PDF temporarily
     pdf_content = await file.read()
     markdown_text = pymupdf4llm.to_markdown(pymupdf.Document(stream=pdf_content))
-    logger.debug("PDF successfully converted to markdown")
 
     return {"content": markdown_text}
-    
+
 class ChatMessageModel(BaseModel):
     role: str
     content: str
     name: str | None = None
 
-class ModelConfig(BaseModel):
+class ProviderConfig(BaseModel):
     provider_name: str
-    model_name: str
     config: dict
+    model_name: str | None = None
 
 class ChatRequest(BaseModel):
     messages: List[ChatMessageModel]
-    llm_config: ModelConfig
+    llm_config: ProviderConfig
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
-    logger.debug(f"Chat request received for model: {request.llm_config.model_name}")
-    # Prepare messages for OpenAI API
     openai_messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
+    config = request.provider_config.config
+    client = config_to_client(config)
 
-    # Set up the OpenAI client with the API key
-    client = openai.OpenAI(api_key=request.llm_config.config["api_key"]["value"],
-                            base_url=request.llm_config.config["base_url"]["value"])
-    logger.debug(f"OpenAI client initialized with base URL: {request.llm_config.config['base_url']['value']}")
-
-    # Call OpenAI API with streaming enabled
-    logger.debug("Sending streaming request to OpenAI API")
-    
     async def generate():
         try:
             stream = client.chat.completions.create(
@@ -94,22 +83,33 @@ async def chat(request: ChatRequest):
                 messages=openai_messages,
                 stream=True,
             )
-            
+
             # Stream the response chunks
             for chunk in stream:
                 if chunk.choices and chunk.choices[0].delta.content:
                     content = chunk.choices[0].delta.content
                     yield f"data: {json.dumps({'content': content})}\n\n"
-            
+
             # Send a completion signal
             yield f"data: {json.dumps({'done': True})}\n\n"
-            
+
         except Exception as e:
             logger.error(f"Streaming error: {str(e)}")
             logger.error(traceback.format_exc())
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
-    
+
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+@app.post("/api/models")
+async def get_available_models(provider_config: ProviderConfig):
+    # Create client using the OpenAI library with the provided configuration
+    # This works for OpenAI and compatible providers (Anthropic, Mistral, etc.)
+    client = config_to_client(provider_config.provider_name, provider_config.config)
+    # Fetch models using the OpenAI-compatible API
+    models_response = client.models.list()
+    models = [model.id for model in models_response.data]
+
+    return {"provider": provider_config.provider_name, "models": models}
 
 # Add exception handler for uncaught exceptions
 @app.middleware("http")

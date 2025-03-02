@@ -80,7 +80,7 @@ function Viewer() {
       },
       body: JSON.stringify({
         messages: messages,
-        llm_config: {
+        provider_config: {
           provider_name: settings.current_model[0],
           model_name: settings.current_model[1],
           config: settings.providers[settings.current_model[0]].config
@@ -330,26 +330,26 @@ function Viewer() {
   const handleEditMessage = async (index, newContent) => {
     // Create a copy of the messages array
     const updatedMessages = [...messages];
-    
+
     // Update the content of the message at the specified index
     updatedMessages[index] = {
       ...updatedMessages[index],
       content: newContent
     };
-    
+
     // Remove all messages after the edited message
     const truncatedMessages = updatedMessages.slice(0, index + 1);
-    
+
     // Update the messages state
     setMessages(truncatedMessages);
-    
+
     // If this isn't the last message, we need to regenerate the response
     if (index < messages.length - 1) {
       try {
         // Add a placeholder message for the assistant's response
         const assistantPlaceholder = {content: '', role: 'assistant', isStreaming: true};
         setMessages(prev => [...prev, assistantPlaceholder]);
-        
+
         // Use the streaming function with a callback to update the placeholder
         await sendChatRequest(truncatedMessages, (chunk, fullContent) => {
           setMessages(prevMessages => {
@@ -363,7 +363,7 @@ function Viewer() {
             return updatedMessages;
           });
         });
-        
+
         // Mark message as no longer streaming when complete
         setMessages(prevMessages => {
           const updatedMessages = [...prevMessages];

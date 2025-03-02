@@ -2,7 +2,6 @@ import {createContext, useContext, useState} from 'react';
 
 const PROVIDER_CONFIG = {
   openai: {
-    models: ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
     config: {
       api_key: {
         type: "text",
@@ -18,7 +17,6 @@ const PROVIDER_CONFIG = {
     }
   },
   anthropic: {
-    models: ["claude-3-5-sonnet-20240620"],
     config: {
       api_key: {
         type: "text",
@@ -34,7 +32,6 @@ const PROVIDER_CONFIG = {
     }
   },
   ollama: {
-    models: ["qwen2.5", "qwen2.5-coder"],
     config: {
       base_url: {
         type: "text",
@@ -54,7 +51,7 @@ const PROVIDER_CONFIG = {
 
 // Define default settings
 const DEFAULT_SETTINGS = {
-  current_model: ['openai', 'gpt-4o-mini'],
+  current_model: null,
   providers: PROVIDER_CONFIG
 };
 
