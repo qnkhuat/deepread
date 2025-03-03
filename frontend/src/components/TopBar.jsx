@@ -5,12 +5,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import SearchIcon from '@mui/icons-material/Search';
 import { useState, useEffect } from 'react';
-
-const backendURL = () => {
-  return window.electron
-    ? `http://localhost:${window.electron.getBackendPort()}`
-    : 'http://localhost:8345';
-}
+import * as api from '@/api';
 
 function TopBar() {
   const { settings, updateSetting } = useSettings();
@@ -31,29 +26,22 @@ function TopBar() {
   };
 
   // Fetch models only for configured providers that don't have models cached
-  const fetchModels = async () => {
+  const fetchModelsForProviders = async () => {
     setIsLoading(true);
     try {
       for (const [providerName, providerInfo] of Object.entries(settings.providers)) {
-        // Check if provider is configured and doesn't have models cached
+        console.log("HEY", providerName);
         if (isProviderConfigured(providerName) && 
             (!providerInfo.models || providerInfo.models.length === 0)) {
-          const response = await fetch(`${backendURL()}/api/models`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              provider_name: providerName,
-              config: providerInfo.config
-            }),
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.models && Array.isArray(data.models)) {
-              updateSetting(['providers', providerName, 'models'], data.models);
+          try {
+            console.log("PROVIDER INFO: ", providerInfo, providerName);
+            const models = await api.getModels(providerName, providerInfo.config);
+            if (models && Array.isArray(models)) {
+              updateSetting(['providers', providerName, 'models'], models);
             }
+          } catch (error) {
+            console.error(`Error fetching models for ${providerName}:`, error);
+            updateSetting(['providers', providerName, 'error'], error.message);
           }
         }
       }
@@ -69,7 +57,8 @@ function TopBar() {
     if (!isAnyProviderConfigured()) {
       handleOpenConfig();
     } else {
-      fetchModels().then(() => {
+      console.log("HEY2");
+      fetchModelsForProviders().then(() => {
         // After fetching models, select the first available model if none is selected
         if (!settings.current_model) {
           selectFirstAvailableModel();
@@ -105,7 +94,7 @@ function TopBar() {
     });
     setConfigOpen(false);
     // Fetch models after saving new configurations
-    fetchModels();
+    fetchModelsForProviders();
   };
 
   const handleClick = (event) => {
@@ -138,15 +127,15 @@ function TopBar() {
 
   // Add a button to refresh models in the settings modal
   const handleRefreshModels = async () => {
-    // Clear cached models
-    Object.keys(settings.providers).forEach(providerName => {
-      if (isProviderConfigured(providerName)) {
-        updateSetting(['providers', providerName, 'models'], []);
-      }
-    });
-    
-    // Fetch models again
-    await fetchModels();
+   // Clear cached models
+   Object.keys(settings.providers).forEach(providerName => {
+     if (isProviderConfigured(providerName)) {
+       updateSetting(['providers', providerName, 'models'], []);
+     }
+   });
+   
+   // Fetch models again
+   await fetchModelsForProviders();
   };
 
   // Initialize expanded state for providers
@@ -185,10 +174,6 @@ function TopBar() {
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
-  };
-
-  const clearSearch = () => {
-    setSearchTerm('');
   };
 
   return (
@@ -304,7 +289,11 @@ function TopBar() {
                       
                       {(!providerInfo.models || providerInfo.models.length === 0) && (
                         <MenuItem disabled>
-                          {isProviderConfigured(providerName) ? 'Loading models...' : 'Configure provider first'}
+                          {isProviderConfigured(providerName) 
+                            ? (providerInfo.error 
+                               ? `Error: ${providerInfo.error}` 
+                               : 'Loading models...') 
+                            : 'Configure provider first'}
                         </MenuItem>
                       )}
                     </>
@@ -386,8 +375,7 @@ function TopBar() {
               Refresh Models
             </Button>
             <Box>
-              <Button variant="outlined" onClick={() => setConfigOpen(false)}>Cancel</Button>
-              <Button 
+                <Button 
                 variant="contained" 
                 onClick={handleSave}
                 disabled={isLoading}
@@ -395,6 +383,8 @@ function TopBar() {
               >
                 {isLoading ? 'Saving...' : 'Save'}
               </Button>
+<Button variant="outlined" onClick={() => setConfigOpen(false)}>Cancel</Button>
+
             </Box>
           </Box>
         </Box>

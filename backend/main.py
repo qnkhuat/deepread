@@ -20,7 +20,6 @@ app = FastAPI()
 def config_to_client(provider_name: str, config: dict):
     api_key = config["api_key"]["value"]
     base_url = config["base_url"]["value"]
-    print("DICT: ", config)
     if provider_name == "anthropic":
         return openai.OpenAI(api_key=api_key,
                              base_url=base_url,
@@ -50,7 +49,6 @@ async def convert_pdf_to_markdown(file: UploadFile = File(...)):
             content={"message": "Only PDF files are allowed"}
         )
 
-# Read and save PDF temporarily
     pdf_content = await file.read()
     markdown_text = pymupdf4llm.to_markdown(pymupdf.Document(stream=pdf_content))
 
@@ -104,13 +102,19 @@ async def chat(request: ChatRequest):
 async def get_available_models(provider_config: ProviderConfig):
     # Create client using the OpenAI library with the provided configuration
     # This works for OpenAI and compatible providers (Anthropic, Mistral, etc.)
-    client = config_to_client(provider_config.provider_name, provider_config.config)
-    # Fetch models using the OpenAI-compatible API
-    models_response = client.models.list()
-    print("MODELS: ", models_response)
-    models = [model.id for model in models_response.data]
-
-    return {"provider": provider_config.provider_name, "models": models}
+    try:
+        client = config_to_client(provider_config.provider_name, provider_config.config)
+        # Fetch models using the OpenAI-compatible API
+        models_response = client.models.list()
+        models = [model.id for model in models_response.data]
+        return {"provider": provider_config.provider_name, "models": models}
+    except Exception as e:
+        logger.error(f"Error fetching models: {str(e)}")
+        logger.error(traceback.format_exc())
+        return JSONResponse(
+            status_code=500,
+            content={"message": str(e)}
+        )
 
 # Add exception handler for uncaught exceptions
 @app.middleware("http")

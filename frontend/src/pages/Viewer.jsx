@@ -14,6 +14,7 @@ import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import Chat from '../components/Chat';
 import {useSettings} from '../contexts/SettingsContext';
+import * as api from '@/api';
 
 // Set the worker source
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -47,15 +48,6 @@ Ensure that your final answer is detailed, insightful, and directly based on the
   }
 }
 
-const backendURL = () => {
-  return window.electron
-    ? `http://localhost:${window.electron.getBackendPort()}`
-    : 'http://localhost:8345';
-}
-
-// Add this new function before the Viewer component
-
-
 function Viewer() {
   const [numPages, setNumPages] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -73,63 +65,13 @@ function Viewer() {
 
   const sendChatRequest = async (messages, onChunk) => {
     console.log(settings);
-    const response = await fetch(`${backendURL()}/api/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        messages: messages,
-        provider_config: {
-          provider_name: settings.current_model[0],
-          model_name: settings.current_model[1],
-          config: settings.providers[settings.current_model[0]].config
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to get chat response');
-    }
-
-    // Handle streaming response
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let fullContent = '';
-
-    while (true) {
-      const {done, value} = await reader.read();
-      if (done) break;
-
-      const text = decoder.decode(value);
-      const lines = text.split('\n\n');
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.substring(6));
-
-            if (data.error) {
-              throw new Error(data.error);
-            }
-
-            if (data.content) {
-              fullContent += data.content;
-              if (onChunk) onChunk(data.content, fullContent);
-            }
-
-            if (data.done) {
-              break;
-            }
-          } catch (e) {
-            console.error('Error parsing SSE data:', e);
-          }
-        }
-      }
-    }
-
-    return {content: fullContent};
+    const providerConfig = {
+      provider_name: settings.current_model[0],
+      model_name: settings.current_model[1],
+      config: settings.providers[settings.current_model[0]].config
+    };
+    
+    return api.postChat(messages, providerConfig, onChunk);
   }
 
   const handleFileUpload = async (file) => {
@@ -137,17 +79,9 @@ function Viewer() {
       const url = URL.createObjectURL(file);
       setPdfUrl(url);
 
-      // Send file to backend
-      const formData = new FormData();
-      formData.append('file', file);
-
       try {
-        // Get a summarization of the document
-        const fileResponse = await fetch(`${backendURL()}/api/to_markdown`, {
-          method: 'POST',
-          body: formData,
-        });
-        const fileData = await fileResponse.json();
+        // Get a summarization of the document using the API service
+        const fileData = await api.postToMarkdown(file);
         setPdfContent(fileData.content);
         const initialMessages = [systemPrompt(fileData.content)];
         setSuggestedPrompts([

@@ -2,6 +2,7 @@ import {createContext, useContext, useState} from 'react';
 
 const PROVIDER_CONFIG = {
   openai: {
+    models: ["gpt-4.5-preview", "gpt-4o-mini", "gpt-4o"],
     config: {
       api_key: {
         type: "text",
@@ -17,6 +18,7 @@ const PROVIDER_CONFIG = {
     }
   },
   anthropic: {
+    models: ["claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022 "],
     config: {
       api_key: {
         type: "text",
