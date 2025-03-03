@@ -1,9 +1,11 @@
 import { useSettings } from '../contexts/SettingsContext';
-import { Container, Modal, TextField, IconButton, Select, MenuItem, ListSubheader, Box, Typography, Button, Menu, InputAdornment } from '@mui/material';
+import { Container, Modal, TextField, IconButton, Switch, MenuItem, List, ListItem, ListItemText, ListSubheader, Box, Typography, Button, Menu, InputAdornment, FormControlLabel } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import SearchIcon from '@mui/icons-material/Search';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { useState, useEffect } from 'react';
 import * as api from '@/api';
 
@@ -30,11 +32,10 @@ function TopBar() {
     setIsLoading(true);
     try {
       for (const [providerName, providerInfo] of Object.entries(settings.providers)) {
-        console.log("HEY", providerName);
         if (isProviderConfigured(providerName) && 
+            isProviderEnabled(providerName) &&
             (!providerInfo.models || providerInfo.models.length === 0)) {
           try {
-            console.log("PROVIDER INFO: ", providerInfo, providerName);
             const models = await api.getModels(providerName, providerInfo.config);
             if (models && Array.isArray(models)) {
               updateSetting(['providers', providerName, 'models'], models);
@@ -57,7 +58,6 @@ function TopBar() {
     if (!isAnyProviderConfigured()) {
       handleOpenConfig();
     } else {
-      console.log("HEY2");
       fetchModelsForProviders().then(() => {
         // After fetching models, select the first available model if none is selected
         if (!settings.current_model) {
@@ -71,6 +71,7 @@ function TopBar() {
   const selectFirstAvailableModel = () => {
     for (const [providerName, providerInfo] of Object.entries(settings.providers)) {
       if (isProviderConfigured(providerName) && 
+          isProviderEnabled(providerName) &&
           providerInfo.models && 
           providerInfo.models.length > 0) {
         updateSetting('current_model', [providerName, providerInfo.models[0]]);
@@ -91,6 +92,7 @@ function TopBar() {
           updateSetting(['providers', providerName, 'config', key, 'value'], config.value);
         }
       });
+      updateSetting(['providers', providerName, 'enabled'], providerInfo.enabled);
     });
     setConfigOpen(false);
     // Fetch models after saving new configurations
@@ -176,6 +178,11 @@ function TopBar() {
     setSearchTerm(event.target.value);
   };
 
+  // Add a new function to check if a provider is enabled
+  const isProviderEnabled = (providerName) => {
+    return settings.providers[providerName]?.enabled === true;
+  };
+
   return (
     <Container maxWidth={false} sx={{ height: '50px', borderBottom: '1px solid #e0e0e0' }}>
       <Box sx={{ 
@@ -245,6 +252,9 @@ function TopBar() {
                 return null;
               }
               
+              const isEnabled = isProviderEnabled(providerName);
+              const isConfigured = isProviderConfigured(providerName);
+              
               return (
                 <div key={providerName}>
                   <ListSubheader 
@@ -252,11 +262,18 @@ function TopBar() {
                       display: 'flex', 
                       justifyContent: 'space-between', 
                       alignItems: 'center',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      color: isEnabled ? 'primary.main' : 'text.disabled',
                     }}
                     onClick={(e) => toggleProviderExpanded(providerName, e)}
                   >
-                    {providerName}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {providerName}
+                      {(isConfigured && isEnabled) ? 
+                        <CheckCircleIcon fontSize="small" color="success" /> : 
+                        <CancelIcon fontSize="small" color="disabled" />
+                      }
+                    </Box>
                     {expandedProviders[providerName] ? 
                       <ExpandLessIcon fontSize="small" /> : 
                       <ExpandMoreIcon fontSize="small" />
@@ -265,7 +282,7 @@ function TopBar() {
                   
                   {expandedProviders[providerName] && (
                     <>
-                      {searchTerm ? (
+                      {isEnabled && searchTerm ? (
                         // Show filtered models when searching
                         filteredModels[providerName]?.map(modelName => (
                           <MenuItem 
@@ -275,7 +292,7 @@ function TopBar() {
                             {modelName}
                           </MenuItem>
                         ))
-                      ) : (
+                      ) : isEnabled && (
                         // Show all models when not searching
                         (providerInfo.models || []).map(modelName => (
                           <MenuItem 
@@ -287,7 +304,7 @@ function TopBar() {
                         ))
                       )}
                       
-                      {(!providerInfo.models || providerInfo.models.length === 0) && (
+                      {isEnabled && (!providerInfo.models || providerInfo.models.length === 0) && (
                         <MenuItem disabled>
                           {isProviderConfigured(providerName) 
                             ? (providerInfo.error 
@@ -331,11 +348,13 @@ function TopBar() {
           boxShadow: 24,
           p: 4,
           borderRadius: 1,
-          minWidth: 300,
+          minWidth: 400,
+          maxHeight: '80vh',
+          overflow: 'auto'
         }}>
           <h2>Provider Configuration</h2>
           {Object.entries(settings.providers).map(([providerName, providerInfo]) => (
-            <Box key={providerName}>
+            <Box key={providerName} sx={{ mb: 3, pb: 2, borderBottom: '1px solid #e0e0e0' }}>
               <Typography variant="h6" sx={{mt: 2, mb: 1}}>{providerName}</Typography>
               {Object.entries(providerInfo.config).map(([key, config]) => (
                 <TextField
@@ -364,8 +383,29 @@ function TopBar() {
                   size="small"
                 />
               ))}
+              
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={tempSettings[providerName]?.enabled}
+                    onChange={(e) => {
+                      setTempSettings(prev => ({
+                        ...prev,
+                        [providerName]: {
+                          ...prev[providerName],
+                          enabled: e.target.checked
+                        }
+                      }));
+                    }}
+                    color="primary"
+                  />
+                }
+                label="Enable Provider"
+                sx={{ mt: 1 }}
+              />
             </Box>
           ))}
+          
           <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
             <Button 
               variant="outlined" 
@@ -375,7 +415,7 @@ function TopBar() {
               Refresh Models
             </Button>
             <Box>
-                <Button 
+              <Button 
                 variant="contained" 
                 onClick={handleSave}
                 disabled={isLoading}
@@ -383,8 +423,7 @@ function TopBar() {
               >
                 {isLoading ? 'Saving...' : 'Save'}
               </Button>
-<Button variant="outlined" onClick={() => setConfigOpen(false)}>Cancel</Button>
-
+              <Button variant="outlined" onClick={() => setConfigOpen(false)}>Cancel</Button>
             </Box>
           </Box>
         </Box>
