@@ -19,7 +19,7 @@ const PROVIDER_CONFIG = {
     }
   },
   anthropic: {
-    models: ["claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022 "],
+    models: ["claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022"],
     enabled: false,
     config: {
       api_key: {
@@ -32,6 +32,23 @@ const PROVIDER_CONFIG = {
         label: "Base URL",
         required: false,
         value: "https://api.anthropic.com/v1"
+      }
+    }
+  },
+  deepseek: {
+    models: ["deepseek-chat", "deepseek-reasoner"],
+    enabled: false,
+    config: {
+      api_key: {
+        type: "text",
+        label: "API Key",
+        required: true
+      },
+      base_url: {
+        type: "text",
+        label: "Base URL",
+        required: false,
+        value: "https://api.deepseek.com"
       }
     }
   },
