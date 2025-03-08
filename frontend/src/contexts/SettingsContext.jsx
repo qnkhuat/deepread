@@ -19,7 +19,7 @@ const PROVIDER_CONFIG = {
     }
   },
   anthropic: {
-    models: ["claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022"],
+    models: ["claude-3-7-sonnet", "claude-3-5-haiku"],
     enabled: false,
     config: {
       api_key: {

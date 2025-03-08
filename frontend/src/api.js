@@ -25,7 +25,7 @@ export const postChat = async (messages, providerConfig, onChunk) => {
     },
     body: JSON.stringify({
       messages: messages,
-      provider_config: providerConfig
+      llm_config: providerConfig
     })
   });
 
@@ -37,7 +37,6 @@ export const postChat = async (messages, providerConfig, onChunk) => {
   // Handle streaming response
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
-  let fullContent = '';
 
   while (true) {
     const { done, value } = await reader.read();
@@ -54,11 +53,9 @@ export const postChat = async (messages, providerConfig, onChunk) => {
           if (data.error) {
             throw new Error(data.error);
           }
-
-          if (data.content) {
-            fullContent += data.content;
-            if (onChunk) onChunk(data.content, fullContent);
-          }
+          
+          // Pass the entire data object to onChunk callback
+          if (onChunk) onChunk(data);
 
           if (data.done) {
             break;
@@ -70,7 +67,7 @@ export const postChat = async (messages, providerConfig, onChunk) => {
     }
   }
 
-  return { content: fullContent };
+  return { success: true };
 };
 
 /**

@@ -62,6 +62,7 @@ function Viewer() {
   const [scale, setScale] = useState(1.5);
   const {settings, updateSetting} = useSettings();
   const [suggestedPrompts, setSuggestedPrompts] = useState([]);
+  const [sessionCost, setSessionCost] = useState(0);
 
   const sendChatRequest = async (messages, onChunk) => {
     console.log(settings);
@@ -71,7 +72,33 @@ function Viewer() {
       config: settings.providers[settings.current_model[0]].config
     };
     
-    return api.postChat(messages, providerConfig, onChunk);
+    return api.postChat(messages, providerConfig, (data) => {
+      // Track usage data if available
+      if (data.usage) {
+        setSessionCost(prevCost => prevCost + data.usage.cost);
+      }
+      
+      // If it's content, build it up for the chat
+      if (data.content) {
+        let fullContent = '';
+        setMessages(prevMessages => {
+          const updatedMessages = [...prevMessages];
+          const lastMessage = updatedMessages[updatedMessages.length - 1];
+          fullContent = (lastMessage.content || '') + data.content;
+          
+          // Update the last message
+          updatedMessages[updatedMessages.length - 1] = {
+            content: fullContent,
+            role: 'assistant',
+            isStreaming: true
+          };
+          return updatedMessages;
+        });
+      }
+      
+      // Call the original onChunk if provided
+      if (onChunk) onChunk(data);
+    });
   }
 
   const handleFileUpload = async (file) => {
@@ -147,19 +174,8 @@ function Viewer() {
       const assistantPlaceholder = {content: '', role: 'assistant', isStreaming: true};
       setMessages(prevMessages => [...prevMessages, assistantPlaceholder]);
 
-      // Use the streaming function with a callback to update the placeholder
-      await sendChatRequest(newMessages, (chunk, fullContent) => {
-        setMessages(prevMessages => {
-          const updatedMessages = [...prevMessages];
-          // Update the last message (which is the placeholder)
-          updatedMessages[updatedMessages.length - 1] = {
-            content: fullContent,
-            role: 'assistant',
-            isStreaming: true
-          };
-          return updatedMessages;
-        });
-      });
+      // Use the streaming function with our callback that handles both content and usage
+      await sendChatRequest(newMessages);
 
       // Mark message as no longer streaming when complete
       setMessages(prevMessages => {
@@ -224,19 +240,8 @@ function Viewer() {
       const assistantPlaceholder = {content: '', role: 'assistant', isStreaming: true};
       setMessages(prevMessages => [...prevMessages, assistantPlaceholder]);
 
-      // Use the streaming function with a callback to update the placeholder
-      await sendChatRequest(newMessages, (chunk, fullContent) => {
-        setMessages(prevMessages => {
-          const updatedMessages = [...prevMessages];
-          // Update the last message (which is the placeholder)
-          updatedMessages[updatedMessages.length - 1] = {
-            content: fullContent,
-            role: 'assistant',
-            isStreaming: true
-          };
-          return updatedMessages;
-        });
-      });
+      // Use the streaming function with our callback that handles both content and usage
+      await sendChatRequest(newMessages);
 
       // Mark message as no longer streaming when complete
       setMessages(prevMessages => {
@@ -284,19 +289,8 @@ function Viewer() {
         const assistantPlaceholder = {content: '', role: 'assistant', isStreaming: true};
         setMessages(prev => [...prev, assistantPlaceholder]);
 
-        // Use the streaming function with a callback to update the placeholder
-        await sendChatRequest(truncatedMessages, (chunk, fullContent) => {
-          setMessages(prevMessages => {
-            const updatedMessages = [...prevMessages];
-            // Update the last message (which is the placeholder)
-            updatedMessages[updatedMessages.length - 1] = {
-              content: fullContent,
-              role: 'assistant',
-              isStreaming: true
-            };
-            return updatedMessages;
-          });
-        });
+        // Use the streaming function with our callback that handles both content and usage
+        await sendChatRequest(truncatedMessages);
 
         // Mark message as no longer streaming when complete
         setMessages(prevMessages => {
@@ -471,6 +465,7 @@ function Viewer() {
               suggestedPrompts={suggestedPrompts}
               handleSuggestedPrompt={handleSuggestedPrompt}
               onEditMessage={handleEditMessage}
+              sessionCost={sessionCost}
             />
           </Paper>
         </Box>

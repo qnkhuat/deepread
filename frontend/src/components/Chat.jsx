@@ -1,5 +1,5 @@
 import ReactMarkdown from 'react-markdown';
-import {Box, Stack, TextField, Button, Paper, CircularProgress} from '@mui/material';
+import {Box, Stack, TextField, Button, Paper, CircularProgress, Typography} from '@mui/material';
 import {useEffect, useRef, useState} from 'react';
 import EditIcon from '@mui/icons-material/Edit';
 
@@ -105,10 +105,16 @@ const styles = {
   },
   input: {
     flex: 1
+  },
+  costDisplay: {
+    fontSize: '0.75rem',
+    color: 'text.secondary',
+    textAlign: 'left',
+    mt: 1
   }
 };
 
-function Chat({messages, inputMessage, setInputMessage, handleSendMessage, suggestedPrompts = [], handleSuggestedPrompt, onEditMessage}) {
+function Chat({messages, inputMessage, setInputMessage, handleSendMessage, suggestedPrompts = [], handleSuggestedPrompt, onEditMessage, sessionCost = 0}) {
   const messageEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const lastUserMessageRef = useRef(null);
@@ -283,6 +289,9 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
             Send
           </Button>
         </Box>
+        <Typography sx={styles.costDisplay}>
+          Session cost: ${sessionCost > 0 ? sessionCost.toFixed(6) : '0.000000'}
+        </Typography>
       </Paper>
     </Box>
   );
