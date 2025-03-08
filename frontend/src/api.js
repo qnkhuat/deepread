@@ -5,9 +5,14 @@
 
 // Helper function to get the backend URL
 const getBackendURL = () => {
-  return window.electron
-    ? `http://localhost:${window.electron.getBackendPort()}`
-    : 'http://localhost:8345';
+  // For Electron app
+  if (window.electron) {
+    return `http://localhost:${window.electron.getBackendPort()}`;
+  }
+  
+  // For Docker deployment, use the same hostname but different port
+  // For local development, this will still use localhost
+  return `http://${window.location.hostname}:8345`;
 };
 
 /**

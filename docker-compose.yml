@@ -1,0 +1,18 @@
+services:
+  deepread:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8345:8345"  # Backend API
+      - "3000:3000"  # Frontend
+    environment:
+      - BACKEND_PORT=8345
+      - FRONTEND_PORT=3000
+    volumes:
+      # If you need to persist any data
+      - deepread_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  deepread_data:
