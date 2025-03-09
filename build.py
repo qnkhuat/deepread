@@ -27,14 +27,20 @@ def build_frontend():
         print(f"Error: Frontend directory not found at {frontend_dir}")
         return None
 
+    # On Windows, we need to use npm.cmd instead of npm
+    npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
+    
     # Run npm build
     try:
-        subprocess.run(["npm", "install"], cwd=frontend_dir, check=True)
-        subprocess.run(["npm", "run", "build"], cwd=frontend_dir, check=True)
+        subprocess.run([npm_cmd, "install"], cwd=frontend_dir, check=True)
+        subprocess.run([npm_cmd, "run", "build"], cwd=frontend_dir, check=True)
         print("Frontend build successful!")
         return os.path.join(frontend_dir, "dist")
     except subprocess.CalledProcessError as e:
         print(f"Error building frontend: {e}")
+        return None
+    except FileNotFoundError:
+        print(f"Error: {npm_cmd} not found. Make sure Node.js is installed and in your PATH.")
         return None
 
 def build_backend(frontend_build_dir=None):
