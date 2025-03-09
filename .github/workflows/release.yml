@@ -92,11 +92,11 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            mv backend/dist/backend.exe backend/dist/DeepRead-binary-${{ github.ref_name }}.exe
+            mv backend/dist/backend.exe backend/dist/DeepRead-binary-Windows-${{ github.ref_name }}.exe
           else
-            mv backend/dist/backend backend/dist/DeepRead-binary-${{ github.ref_name }}
+            mv backend/dist/backend backend/dist/DeepRead-binary-$(if [[ "${{ matrix.os }}" == "macos-latest" ]]; then echo "macOS"; else echo "Linux"; fi)-${{ github.ref_name }}
             if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-              chmod +x backend/dist/DeepRead-binary-${{ github.ref_name }}
+              chmod +x backend/dist/DeepRead-binary-macOS-${{ github.ref_name }}
             fi
           fi
 
@@ -104,7 +104,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: binary-${{ matrix.os }}
-          path: backend/dist/DeepRead-binary-${{ github.ref_name }}*
+          path: backend/dist/DeepRead-binary-*-${{ github.ref_name }}*
 
   create-release:
     name: Create GitHub Release
@@ -140,18 +140,18 @@ jobs:
             artifacts/electron-macos-latest/deep-read-*.dmg
             artifacts/electron-windows-latest/deep-read*Setup*.exe
             artifacts/electron-ubuntu-latest/deep-read-*.AppImage
-            artifacts/binary-macos-latest/DeepRead-binary-${{ github.ref_name }}
-            artifacts/binary-windows-latest/DeepRead-binary-${{ github.ref_name }}.exe
-            artifacts/binary-ubuntu-latest/DeepRead-binary-${{ github.ref_name }}
+            artifacts/binary-macos-latest/DeepRead-binary-macOS-${{ github.ref_name }}
+            artifacts/binary-windows-latest/DeepRead-binary-Windows-${{ github.ref_name }}.exe
+            artifacts/binary-ubuntu-latest/DeepRead-binary-Linux-${{ github.ref_name }}
           body: |
             ## DeepRead ${{ github.ref_name }}
 
             ### Electron Apps
-            - macOS: [DeepRead-${{ github.ref_name }}.dmg](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/deep-read-*.dmg)
-            - Windows: [DeepRead-${{ github.ref_name }}.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/deep-read*.exe)
-            - Linux: [DeepRead-${{ github.ref_name }}.AppImage](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/deep-read-*.AppImage)
+            - macOS: [DeepRead-macOS-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/deep-read-*.dmg)
+            - Windows: [DeepRead-Windows-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/deep-read*Setup*.exe)
+            - Linux: [DeepRead-Linux-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/deep-read-*.AppImage)
 
             ### Executables
-            - macOS: [DeepRead-binary-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-binary-${{ github.ref_name }})
-            - Windows: [DeepRead-binary-${{ github.ref_name }}.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-binary-${{ github.ref_name }}.exe)
-            - Linux: [DeepRead-binary-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-binary-${{ github.ref_name }})
+            - macOS: [DeepRead-binary-macOS-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-binary-macOS-${{ github.ref_name }})
+            - Windows: [DeepRead-binary-Windows-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-binary-Windows-${{ github.ref_name }}.exe)
+            - Linux: [DeepRead-binary-Linux-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-binary-Linux-${{ github.ref_name }})
