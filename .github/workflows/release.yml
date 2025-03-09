@@ -137,9 +137,9 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            artifacts/electron-macos-latest/DeepRead-${{ github.ref_name }}.dmg
-            artifacts/electron-windows-latest/DeepRead-${{ github.ref_name }}.exe
-            artifacts/electron-ubuntu-latest/DeepRead-${{ github.ref_name }}.AppImage
+            artifacts/electron-macos-latest/deep-read-*.dmg
+            artifacts/electron-windows-latest/deep-read*Setup*.exe
+            artifacts/electron-ubuntu-latest/deep-read-*.AppImage
             artifacts/binary-macos-latest/DeepRead-binary-${{ github.ref_name }}
             artifacts/binary-windows-latest/DeepRead-binary-${{ github.ref_name }}.exe
             artifacts/binary-ubuntu-latest/DeepRead-binary-${{ github.ref_name }}
@@ -147,9 +147,9 @@ jobs:
             ## DeepRead ${{ github.ref_name }}
 
             ### Electron Apps
-            - macOS: [DeepRead-${{ github.ref_name }}.dmg](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-${{ github.ref_name }}.dmg)
-            - Windows: [DeepRead-${{ github.ref_name }}.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-${{ github.ref_name }}.exe)
-            - Linux: [DeepRead-${{ github.ref_name }}.AppImage](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-${{ github.ref_name }}.AppImage)
+            - macOS: [DeepRead-${{ github.ref_name }}.dmg](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/deep-read-*.dmg)
+            - Windows: [DeepRead-${{ github.ref_name }}.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/deep-read*.exe)
+            - Linux: [DeepRead-${{ github.ref_name }}.AppImage](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/deep-read-*.AppImage)
 
             ### Executables
             - macOS: [DeepRead-binary-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-binary-${{ github.ref_name }})
