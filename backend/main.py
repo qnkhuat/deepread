@@ -1,7 +1,7 @@
 import os, json
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, Query, Form, APIRouter, Request, HTTPException
-from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import openai
@@ -228,8 +228,13 @@ async def log_requests(request: Request, call_next):
     logger.info(f"Response: {method} {path} - Status: {response.status_code}")
     return response
 
-# Include the API router
-app.include_router(api_router)
+# Include the API router with the correct prefix
+app.include_router(api_router, prefix="/api")
+
+# Create a redirect for docs
+@app.get("/api/docs", include_in_schema=False)
+async def custom_swagger_ui_redirect():
+    return RedirectResponse(url="/docs")
 
 # Mount static files only in production mode (when bundled)
 frontend_dir = get_frontend_dir()
@@ -238,8 +243,8 @@ if frontend_dir and os.path.exists(frontend_dir):
     # Create a custom middleware to handle static files while preserving API routes
     @app.middleware("http")
     async def serve_static_or_api(request: Request, call_next):
-        # Always let API requests pass through to the API router
-        if request.url.path.startswith("/api"):
+        # Always let API requests and docs requests pass through
+        if request.url.path.startswith("/api") or request.url.path.startswith("/docs") or request.url.path.startswith("/openapi.json"):
             return await call_next(request)
 
         # For non-API paths, try to serve static files
