@@ -9,7 +9,7 @@
     "dev:web": "cd frontend && npm run build && cd .. && concurrently -n 'frontend,backend' -c 'yellow,green' 'cd frontend && VITE_WATCH=true npm run build:watch' 'cd backend && fastapi dev main.py'",
     "build:frontend": "cd frontend && npm install && npm run build",
     "build:executable": "python build.py",
-    "build:electron": "npm run build:frontend && python build.py --backend-only && electron-builder"
+    "build:electron": "npm run build:frontend && python build.py --backend-only && electron-builder --publish=never"
 
   },
   "build": {
