@@ -10,8 +10,18 @@ const getBackendURL = () => {
     return `http://localhost:${window.electron.getBackendPort()}`;
   }
   
-  // For Docker deployment, use the same hostname but different port
-  // For local development, this will still use localhost
+  // When running in production mode (backend serving frontend)
+  // In this case, we don't need to specify a host/port as the API is on the same origin
+  if (process.env.NODE_ENV === 'production' && !window.location.port) {
+    return '';
+  }
+  
+  // For development mode with Vite proxy
+  if (process.env.NODE_ENV === 'development') {
+    return '';
+  }
+  
+  // For Docker deployment or other scenarios, use the same hostname but different port
   return `http://${window.location.hostname}:8345`;
 };
 

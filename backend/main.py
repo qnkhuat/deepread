@@ -1,8 +1,9 @@
 import os, json
 import uvicorn
-from fastapi import FastAPI, UploadFile, File, Query, Form
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi import FastAPI, UploadFile, File, Query, Form, APIRouter, Request, HTTPException
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import openai
 import pymupdf4llm
 import pymupdf
@@ -10,12 +11,15 @@ from pydantic import BaseModel
 from typing import List
 import logging
 import traceback
-from fastapi import Request
-from fastapi.responses import JSONResponse
+import sys
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+# Create two separate applications
+app = FastAPI()  # Main app
+
+# Create a separate router for API endpoints
+api_router = APIRouter(prefix="/api")
 
 def config_to_client(provider_name: str, config: dict):
     api_key = config["api_key"]["value"]
@@ -28,20 +32,35 @@ def config_to_client(provider_name: str, config: dict):
     else:
         return openai.OpenAI(api_key=api_key, base_url=base_url)
 
-# Add CORS middleware
+# Add CORS middleware to both
 app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-        )
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+# Determine if we're running in a PyInstaller bundle
+def is_bundled():
+    return getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
 
-@app.post("/api/to_markdown")
+# Get the directory where frontend files are located
+def get_frontend_dir():
+    if is_bundled():
+        # When bundled with PyInstaller, frontend files are in 'frontend' directory next to the executable
+        base_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname(__file__)))
+        return os.path.join(base_dir, 'frontend')
+    else:
+        # In development, frontend files would be in a different location
+        # We don't serve frontend files in development mode
+        return None
+
+@api_router.get("")
+async def api_root():
+    return {"message": "API is running"}
+
+@api_router.post("/to_markdown")
 async def convert_pdf_to_markdown(file: UploadFile = File(...)):
     if not file.filename.endswith('.pdf'):
         return JSONResponse(
@@ -68,7 +87,7 @@ class ChatRequest(BaseModel):
     messages: List[ChatMessageModel]
     llm_config: ProviderConfig
 
-@app.post("/api/chat")
+@api_router.post("/chat")
 async def chat(request: ChatRequest):
     openai_messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
     config = request.llm_config.config
@@ -178,36 +197,65 @@ def calculate_cost(provider_name, model_name, input_tokens, completion_tokens):
 
     return round(total_cost, 6)  # Round to 6 decimal places
 
-@app.post("/api/models")
+@api_router.post("/models")
 async def get_available_models(provider_config: ProviderConfig):
     # Create client using the OpenAI library with the provided configuration
     # This works for OpenAI and compatible providers (Anthropic, Mistral, etc.)
     try:
         client = config_to_client(provider_config.provider_name, provider_config.config)
-        # Fetch models using the OpenAI-compatible API
+
+        # Get models from the provider
         models_response = client.models.list()
-        models = [model.id for model in models_response.data]
-        return {"provider": provider_config.provider_name, "models": models}
+
+        # Extract model IDs
+        model_ids = [model.id for model in models_response.data]
+
+        return {"models": model_ids}
     except Exception as e:
         logger.error(f"Error fetching models: {str(e)}")
-        logger.error(traceback.format_exc())
         return JSONResponse(
             status_code=500,
-            content={"message": str(e)}
+            content={"message": f"Failed to fetch models: {str(e)}"}
         )
 
-# Add exception handler for uncaught exceptions
+# Add logging middleware to debug the request flow
 @app.middleware("http")
-async def log_exceptions(request: Request, call_next):
-    try:
-        return await call_next(request)
-    except Exception as e:
-        logger.error(f"Uncaught exception: {str(e)}")
-        logger.error(traceback.format_exc())
-        return JSONResponse(
-            status_code=500,
-            content={"message": "Internal server error"}
-        )
+async def log_requests(request: Request, call_next):
+    path = request.url.path
+    method = request.method
+    logger.info(f"Request: {method} {path}")
+    response = await call_next(request)
+    logger.info(f"Response: {method} {path} - Status: {response.status_code}")
+    return response
+
+# Include the API router
+app.include_router(api_router)
+
+# Mount static files only in production mode (when bundled)
+frontend_dir = get_frontend_dir()
+frontend_dir = "/Users/earther/fun/DeepRead/frontend/dist"
+if frontend_dir and os.path.exists(frontend_dir):
+    # Create a custom middleware to handle static files while preserving API routes
+    @app.middleware("http")
+    async def serve_static_or_api(request: Request, call_next):
+        # Always let API requests pass through to the API router
+        if request.url.path.startswith("/api"):
+            return await call_next(request)
+
+        # For non-API paths, try to serve static files
+        path = request.url.path
+        if path == "/" or path == "":
+            path = "/index.html"
+
+        # Remove leading slash for file path
+        file_path = os.path.join(frontend_dir, path.lstrip("/"))
+
+        # If the file exists, serve it
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+
+        # For SPA routing, serve index.html for non-existent files
+        return FileResponse(os.path.join(frontend_dir, "index.html"))
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8345))
