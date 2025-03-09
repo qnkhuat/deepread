@@ -136,9 +136,9 @@ jobs:
             artifacts/electron-macos-latest/*
             artifacts/electron-windows-latest/*
             artifacts/electron-ubuntu-latest/*
-            artifacts/python-executable-macos-latest/DeepRead-executable-${{ github.ref_name }}*
-            artifacts/python-executable-windows-latest/DeepRead-executable-${{ github.ref_name }}*
-            artifacts/python-executable-ubuntu-latest/DeepRead-executable-${{ github.ref_name }}*
+            artifacts/python-executable-macos-latest/*
+            artifacts/python-executable-windows-latest/*
+            artifacts/python-executable-ubuntu-latest/*
           body: |
             ## DeepRead ${{ github.ref_name }}
 
