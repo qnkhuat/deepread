@@ -5,23 +5,11 @@
 
 // Helper function to get the backend URL
 const getBackendURL = () => {
-  // For Electron app
-  if (window.electron) {
-    return `http://localhost:${window.electron.getBackendPort()}`;
-  }
-  
-  // When running in production mode (backend serving frontend)
-  // In this case, we don't need to specify a host/port as the API is on the same origin
-  if (process.env.NODE_ENV === 'production' && !window.location.port) {
-    return '';
-  }
-  
-  // For development mode with Vite proxy
   if (process.env.NODE_ENV === 'development') {
     return '';
   }
   
-  // For Docker deployment or other scenarios, use the same hostname but different port
+  // Use the same hostname with backend port
   return `http://${window.location.hostname}:8345`;
 };
 
