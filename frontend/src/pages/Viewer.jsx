@@ -71,13 +71,13 @@ function Viewer() {
       model_name: settings.current_model[1],
       config: settings.providers[settings.current_model[0]].config
     };
-    
+
     return api.postChat(messages, providerConfig, (data) => {
       // Track usage data if available
       if (data.usage) {
         setSessionCost(prevCost => prevCost + data.usage.cost);
       }
-      
+
       // If it's content, build it up for the chat
       if (data.content) {
         let fullContent = '';
@@ -85,7 +85,7 @@ function Viewer() {
           const updatedMessages = [...prevMessages];
           const lastMessage = updatedMessages[updatedMessages.length - 1];
           fullContent = (lastMessage.content || '') + data.content;
-          
+
           // Update the last message
           updatedMessages[updatedMessages.length - 1] = {
             content: fullContent,
@@ -95,7 +95,7 @@ function Viewer() {
           return updatedMessages;
         });
       }
-      
+
       // Call the original onChunk if provided
       if (onChunk) onChunk(data);
     });

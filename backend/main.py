@@ -52,8 +52,11 @@ def get_frontend_dir():
         base_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname(__file__)))
         return os.path.join(base_dir, 'frontend')
     else:
-        # In development, frontend files would be in a different location
-        # We don't serve frontend files in development mode
+        # In development, serve frontend files from the frontend/dist directory
+        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        frontend_dist = os.path.join(root_dir, "frontend", "dist")
+        if os.path.exists(frontend_dist):
+            return frontend_dist
         return None
 
 @api_router.get("")
@@ -238,7 +241,6 @@ async def custom_swagger_ui_redirect():
 
 # Mount static files only in production mode (when bundled)
 frontend_dir = get_frontend_dir()
-frontend_dir = "/Users/earther/fun/DeepRead/frontend/dist"
 if frontend_dir and os.path.exists(frontend_dir):
     # Create a custom middleware to handle static files while preserving API routes
     @app.middleware("http")

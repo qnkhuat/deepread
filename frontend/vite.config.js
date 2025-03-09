@@ -9,6 +9,8 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    // Enable watch mode when in development
+    watch: process.env.VITE_WATCH === 'true' ? {} : null,
   },
   resolve: {
     alias: {
