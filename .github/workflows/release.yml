@@ -38,13 +38,12 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip install pyinstaller
-          python -m pip install virtualenv
 
       - name: Install root dependencies
         run: npm install
 
       - name: Build application
-        run: npm run build
+        run: npm run build:electron
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -52,7 +51,7 @@ jobs:
           name: electron-${{ matrix.os }}
           path: dist/*
 
-  build-python:
+  build-executable:
     name: Build Python Executable
     runs-on: ${{ matrix.os }}
     strategy:
@@ -92,23 +91,23 @@ jobs:
       - name: Rename executable for distribution
         run: |
           if [ "${{ matrix.os }}" == "windows-latest" ]; then
-            mv backend/dist/backend.exe backend/dist/DeepRead-Python-${{ github.ref_name }}.exe
+            mv backend/dist/backend.exe backend/dist/DeepRead-executable-${{ github.ref_name }}.exe
           else
-            mv backend/dist/backend backend/dist/DeepRead-Python-${{ github.ref_name }}
+            mv backend/dist/backend backend/dist/DeepRead-executable-${{ github.ref_name }}
             if [ "${{ matrix.os }}" == "macos-latest" ]; then
-              chmod +x backend/dist/DeepRead-Python-${{ github.ref_name }}
+              chmod +x backend/dist/DeepRead-executable-${{ github.ref_name }}
             fi
           fi
 
       - name: Upload Python executable
         uses: actions/upload-artifact@v4
         with:
-          name: python-executable-${{ matrix.os }}
-          path: backend/dist/DeepRead-Python-${{ github.ref_name }}*
+          name: executable-${{ matrix.os }}
+          path: backend/dist/DeepRead-executable-${{ github.ref_name }}*
 
   create-release:
     name: Create GitHub Release
-    needs: [build-electron, build-python]
+    needs: [build-electron, build-executable]
     runs-on: ubuntu-latest
 
     steps:
@@ -146,7 +145,7 @@ jobs:
             - Windows: DeepRead-Setup-${{ github.ref_name }}.exe
             - Linux: DeepRead-${{ github.ref_name }}.AppImage
 
-            ### Python Executables
-            - macOS: DeepRead-Python-${{ github.ref_name }}
-            - Windows: DeepRead-Python-${{ github.ref_name }}.exe
-            - Linux: DeepRead-Python-${{ github.ref_name }}
+            ### Executables
+            - macOS: DeepRead-executable-${{ github.ref_name }}
+            - Windows: DeepRead-executable-${{ github.ref_name }}.exe
+            - Linux: DeepRead-executable-${{ github.ref_name }}

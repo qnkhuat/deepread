@@ -29,6 +29,7 @@ def build_frontend():
 
     # Run npm build
     try:
+        subprocess.run(["npm", "install"], cwd=frontend_dir, check=True)
         subprocess.run(["npm", "run", "build"], cwd=frontend_dir, check=True)
         print("Frontend build successful!")
         return os.path.join(frontend_dir, "dist")
@@ -43,7 +44,7 @@ def build_backend(frontend_build_dir=None):
     # Get the root directory
     root_dir = os.path.dirname(os.path.abspath(__file__))
     backend_dir = os.path.join(root_dir, "backend")
-    
+
     # Change to backend directory
     os.chdir(backend_dir)
 
