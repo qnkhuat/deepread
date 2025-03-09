@@ -44,6 +44,8 @@ jobs:
 
       - name: Build application
         run: npm run build:electron
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -93,16 +95,16 @@ jobs:
           if [ "${{ matrix.os }}" == "windows-latest" ]; then
             mv backend/dist/backend.exe backend/dist/DeepRead-executable-${{ github.ref_name }}.exe
           else
-            mv backend/dist/backend backend/dist/DeepRead-executable-${{ github.ref_name }}
+            mv backend/dist/backend backend/dist/DeepRead-Python-${{ github.ref_name }}
             if [ "${{ matrix.os }}" == "macos-latest" ]; then
-              chmod +x backend/dist/DeepRead-executable-${{ github.ref_name }}
+              chmod +x backend/dist/DeepRead-Python-${{ github.ref_name }}
             fi
           fi
 
       - name: Upload Python executable
         uses: actions/upload-artifact@v4
         with:
-          name: executable-${{ matrix.os }}
+          name: python-executable-${{ matrix.os }}
           path: backend/dist/DeepRead-executable-${{ github.ref_name }}*
 
   create-release:
@@ -125,8 +127,6 @@ jobs:
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
