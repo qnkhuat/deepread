@@ -90,14 +90,14 @@ jobs:
 
       - name: Rename executable for distribution
         run: |
-          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          if ("${{ matrix.os }}" -eq "windows-latest") {
             mv backend/dist/backend.exe backend/dist/DeepRead-executable-${{ github.ref_name }}.exe
-          else
+          } else {
             mv backend/dist/backend backend/dist/DeepRead-Python-${{ github.ref_name }}
-            if [ "${{ matrix.os }}" == "macos-latest" ]; then
+            if ("${{ matrix.os }}" -eq "macos-latest") {
               chmod +x backend/dist/DeepRead-Python-${{ github.ref_name }}
-            fi
-          fi
+            }
+          }
 
       - name: Upload Python executable
         uses: actions/upload-artifact@v4
