@@ -60,7 +60,6 @@ jobs:
         #os: [macos-latest, windows-latest, ubuntu-latest]
         os: [macos-latest]
 
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -126,6 +125,10 @@ jobs:
       - name: Display structure of downloaded files
         run: ls -R artifacts
 
+      - name: List specific files to be uploaded
+        run: |
+          find artifacts -type f -name "*${{ github.ref_name }}*" -o -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage"
+
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v2
@@ -136,12 +139,12 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            artifacts/electron-macos-latest/**/*
-            artifacts/electron-windows-latest/**/*
-            artifacts/electron-ubuntu-latest/**/*
-            artifacts/binary-macos-latest/**/*
-            artifacts/binary-windows-latest/**/*
-            artifacts/binary-ubuntu-latest/**/*
+            artifacts/electron-macos-latest/DeepRead-${{ github.ref_name }}.dmg
+            artifacts/electron-windows-latest/DeepRead-${{ github.ref_name }}.exe
+            artifacts/electron-ubuntu-latest/DeepRead-${{ github.ref_name }}.AppImage
+            artifacts/binary-macos-latest/DeepRead-binary-${{ github.ref_name }}
+            artifacts/binary-windows-latest/DeepRead-binary-${{ github.ref_name }}.exe
+            artifacts/binary-ubuntu-latest/DeepRead-binary-${{ github.ref_name }}
           body: |
             ## DeepRead ${{ github.ref_name }}
 
