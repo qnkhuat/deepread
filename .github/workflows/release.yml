@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [macos-latest, windows-latest, ubuntu-latest]
 
     steps:
       - name: Checkout code
@@ -52,9 +52,63 @@ jobs:
           name: electron-${{ matrix.os }}
           path: dist/*
 
+  build-python:
+    name: Build Python Executable
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+          python -m pip install virtualenv
+
+      - name: Build Python executable
+        run: python build.py
+
+      - name: Rename executable for distribution
+        run: |
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            mv backend/dist/backend.exe backend/dist/DeepRead-Python-${{ github.ref_name }}.exe
+          else
+            mv backend/dist/backend backend/dist/DeepRead-Python-${{ github.ref_name }}
+            if [ "${{ matrix.os }}" == "macos-latest" ]; then
+              chmod +x backend/dist/DeepRead-Python-${{ github.ref_name }}
+            fi
+          fi
+
+      - name: Upload Python executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-executable-${{ matrix.os }}
+          path: backend/dist/DeepRead-Python-${{ github.ref_name }}*
+
   create-release:
     name: Create GitHub Release
-    needs: [build-electron]
+    needs: [build-electron, build-python]
     runs-on: ubuntu-latest
 
     steps:
@@ -80,9 +134,19 @@ jobs:
           files: |
             artifacts/electron-macos-latest/*
             artifacts/electron-windows-latest/*
+            artifacts/electron-ubuntu-latest/*
+            artifacts/python-executable-macos-latest/*
+            artifacts/python-executable-windows-latest/*
+            artifacts/python-executable-ubuntu-latest/*
           body: |
             ## DeepRead ${{ github.ref_name }}
 
             ### Electron Apps
             - macOS: DeepRead-${{ github.ref_name }}.dmg
             - Windows: DeepRead-Setup-${{ github.ref_name }}.exe
+            - Linux: DeepRead-${{ github.ref_name }}.AppImage
+
+            ### Python Executables
+            - macOS: DeepRead-Python-${{ github.ref_name }}
+            - Windows: DeepRead-Python-${{ github.ref_name }}.exe
+            - Linux: DeepRead-Python-${{ github.ref_name }}
