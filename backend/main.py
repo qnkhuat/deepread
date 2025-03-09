@@ -50,13 +50,25 @@ def get_frontend_dir():
     if is_bundled():
         # When bundled with PyInstaller, frontend files are in 'frontend' directory next to the executable
         base_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname(__file__)))
-        return os.path.join(base_dir, 'frontend')
+        frontend_dir = os.path.join(base_dir, 'frontend')
+        print(f"Running in bundled mode. Looking for frontend files at: {frontend_dir}")
+        if os.path.exists(frontend_dir):
+            print(f"Frontend directory found at: {frontend_dir}")
+            print(f"Contents: {os.listdir(frontend_dir)}")
+        else:
+            print(f"WARNING: Frontend directory not found at: {frontend_dir}")
+        return frontend_dir
     else:
         # In development, serve frontend files from the frontend/dist directory
         root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         frontend_dist = os.path.join(root_dir, "frontend", "dist")
+        print(f"Running in development mode. Looking for frontend files at: {frontend_dist}")
         if os.path.exists(frontend_dist):
+            print(f"Frontend directory found at: {frontend_dist}")
+            print(f"Contents: {os.listdir(frontend_dist)}")
             return frontend_dist
+        else:
+            print(f"WARNING: Frontend directory not found at: {frontend_dist}")
         return None
 
 @api_router.get("")
@@ -232,7 +244,7 @@ async def log_requests(request: Request, call_next):
     return response
 
 # Include the API router with the correct prefix
-app.include_router(api_router, prefix="/api")
+app.include_router(api_router)
 
 # Create a redirect for docs
 @app.get("/api/docs", include_in_schema=False)
@@ -242,11 +254,14 @@ async def custom_swagger_ui_redirect():
 # Mount static files only in production mode (when bundled)
 frontend_dir = get_frontend_dir()
 if frontend_dir and os.path.exists(frontend_dir):
+    logger.info(f"Mounting static files from {frontend_dir}")
     # Create a custom middleware to handle static files while preserving API routes
     @app.middleware("http")
     async def serve_static_or_api(request: Request, call_next):
         # Always let API requests and docs requests pass through
+        print(f"API request: {request.url.path}")
         if request.url.path.startswith("/api") or request.url.path.startswith("/docs") or request.url.path.startswith("/openapi.json"):
+            print("INTO API request")
             return await call_next(request)
 
         # For non-API paths, try to serve static files
@@ -263,6 +278,8 @@ if frontend_dir and os.path.exists(frontend_dir):
 
         # For SPA routing, serve index.html for non-existent files
         return FileResponse(os.path.join(frontend_dir, "index.html"))
+else:
+    logger.info("No frontend directory found, serving API only")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8345))

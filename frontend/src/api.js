@@ -5,12 +5,14 @@
 
 // Helper function to get the backend URL
 const getBackendURL = () => {
-  if (process.env.NODE_ENV === 'development') {
+  if (window.electron?.getBackendPort) {
+    return `http://localhost:${window.electron.getBackendPort()}`;
+    // in web dev mode, we use the backend port from the preload script
+  } else if (process.env.NODE_ENV === 'development') {
     return '';
+  } else {
+    return window.location.origin;
   }
-  
-  // Use the same hostname with backend port
-  return `http://${window.location.hostname}:8345`;
 };
 
 /**
@@ -42,7 +44,7 @@ export const postChat = async (messages, providerConfig, onChunk) => {
   const decoder = new TextDecoder();
 
   while (true) {
-    const { done, value } = await reader.read();
+    const {done, value} = await reader.read();
     if (done) break;
 
     const text = decoder.decode(value);
@@ -56,7 +58,7 @@ export const postChat = async (messages, providerConfig, onChunk) => {
           if (data.error) {
             throw new Error(data.error);
           }
-          
+
           // Pass the entire data object to onChunk callback
           if (onChunk) onChunk(data);
 
@@ -70,7 +72,7 @@ export const postChat = async (messages, providerConfig, onChunk) => {
     }
   }
 
-  return { success: true };
+  return {success: true};
 };
 
 /**
@@ -86,7 +88,7 @@ export const postToMarkdown = async (file) => {
     method: 'POST',
     body: formData,
   });
-  
+
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || 'Failed to process PDF file');
@@ -119,4 +121,4 @@ export const getModels = async (providerName, config) => {
 
   const data = await response.json();
   return data.models || [];
-}; 
+};
