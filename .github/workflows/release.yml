@@ -44,26 +44,28 @@ jobs:
 
       - name: Build application
         run: npm run build:electron
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Rename electron app for distribution
         shell: bash
         run: |
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            # Find the installer and rename it
-            find dist -name "*.exe" -exec mv {} dist/DeepRead-App-Windows-${{ github.ref_name }}.exe \;
+            # Find the Squirrel installer and rename it
+            find out/make -name "*.exe" -not -path "*/make-*/*" -exec mv {} out/make/DeepRead-App-Windows-${{ github.ref_name }}.exe \;
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             # Find the DMG and rename it
-            find dist -name "*.dmg" -exec mv {} dist/DeepRead-App-macOS-${{ github.ref_name }}.dmg \;
+            find out/make -name "*.dmg" -exec mv {} out/make/DeepRead-App-macOS-${{ github.ref_name }}.dmg \;
           else
-            # Find the AppImage and rename it
-            find dist -name "*.AppImage" -exec mv {} dist/DeepRead-App-Linux-${{ github.ref_name }}.AppImage \;
+            # Find the deb and rename it
+            find out/make -name "*.deb" -exec mv {} out/make/DeepRead-App-Linux-${{ github.ref_name }}.deb \;
           fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: electron-${{ matrix.os }}
-          path: dist/*
+          path: out/make/DeepRead-App-*-${{ github.ref_name }}.*
 
   build-binary:
     name: Build Binary
@@ -124,6 +126,9 @@ jobs:
     name: Create GitHub Release
     needs: [build-electron, build-binary]
     runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -137,10 +142,6 @@ jobs:
       - name: Display structure of downloaded files
         run: ls -R artifacts
 
-      - name: List specific files to be uploaded
-        run: |
-          find artifacts -type f -name "*${{ github.ref_name }}*" -o -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage"
-
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v2
@@ -153,7 +154,7 @@ jobs:
           files: |
             artifacts/electron-macos-latest/DeepRead-App-macOS-${{ github.ref_name }}.dmg
             artifacts/electron-windows-latest/DeepRead-App-Windows-${{ github.ref_name }}.exe
-            artifacts/electron-ubuntu-latest/DeepRead-App-Linux-${{ github.ref_name }}.AppImage
+            artifacts/electron-ubuntu-latest/DeepRead-App-Linux-${{ github.ref_name }}.deb
             artifacts/binary-macos-latest/DeepRead-binary-macOS-${{ github.ref_name }}
             artifacts/binary-windows-latest/DeepRead-binary-Windows-${{ github.ref_name }}.exe
             artifacts/binary-ubuntu-latest/DeepRead-binary-Linux-${{ github.ref_name }}
@@ -163,7 +164,7 @@ jobs:
             ### Electron Apps
             - macOS: [DeepRead-App-macOS-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-App-macOS-${{ github.ref_name }}.dmg)
             - Windows: [DeepRead-App-Windows-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-App-Windows-${{ github.ref_name }}.exe)
-            - Linux: [DeepRead-App-Linux-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-App-Linux-${{ github.ref_name }}.AppImage)
+            - Linux: [DeepRead-App-Linux-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-App-Linux-${{ github.ref_name }}.deb)
 
             ### Executables
             - macOS: [DeepRead-binary-macOS-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-binary-macOS-${{ github.ref_name }})

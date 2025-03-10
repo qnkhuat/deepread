@@ -9,56 +9,24 @@
     "dev:web": "cd frontend && npm run build && cd .. && concurrently -n 'frontend,backend' -c 'yellow,green' 'cd frontend && VITE_WATCH=true npm run build:watch' 'cd backend && fastapi dev main.py'",
     "build:frontend": "cd frontend && npm install && npm run build",
     "build:executable": "python build.py",
-    "build:electron": "npm run build:frontend && python build.py --backend-only && electron-builder --publish=never"
-
+    "build:electron": "npm run build:frontend && python build.py --backend-only && electron-forge make"
   },
-  "build": {
-    "appId": "com.deepread.app",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "app/**/*",
-      "frontend/dist/**/*",
-      "frontend/public/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "backend/dist",
-        "to": "backend",
-        "filter": [
-          "**/*",
-          "!__pycache__/*",
-          "!.env.example"
-        ]
-      }
-    ],
-    "mac": {
-      "icon": "./frontend/public/icon/macos/icon.icns",
-      "target": [
-        "dmg"
-      ]
-    },
-    "win": {
-      "icon": "./frontend/public/icon/win/icon.ico",
-      "target": [
-        "nsis"
-      ]
-    },
-    "linux": {
-      "icon": "./frontend/public/icon/png/1024x1024.png",
-      "target": [
-        "AppImage"
-      ]
-    }
+  "config": {
+    "forge": "./forge.config.js"
   },
   "devDependencies": {
+    "@electron-forge/cli": "^7.7.0",
+    "@electron-forge/maker-deb": "^7.7.0",
+    "@electron-forge/maker-dmg": "^7.7.0",
+    "@electron-forge/maker-rpm": "^7.7.0",
+    "@electron-forge/maker-squirrel": "^7.7.0",
+    "@electron-forge/maker-zip": "^7.7.0",
+    "@electron-forge/publisher-github": "^7.7.0",
     "concurrently": "^8.2.2",
-    "electron": "^34.2.0",
-    "electron-builder": "^24.9.1"
+    "electron": "^34.2.0"
   },
   "dependencies": {
+    "electron-squirrel-startup": "^1.0.1",
     "portscanner": "^2.2.0"
   }
 }
