@@ -159,5 +159,5 @@ jobs:
             ### PyPI Package
             The package is also available on PyPI:
             ```
-            pip install deepread==${{ env.VERSION }}
+            pip install deepread==${{ github.ref_name#v }}
             ```
