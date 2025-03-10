@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=42", "wheel"]
-build-backend = "backend.build_hooks"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "deepread"
@@ -44,4 +44,4 @@ deepread = "backend.cli:main"
 
 [tool.isort]
 profile = "black"
-multi_line_output = 3 
+multi_line_output = 3
