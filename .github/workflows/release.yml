@@ -126,7 +126,7 @@ jobs:
     name: Create GitHub Release
     needs: [build-electron, build-binary]
     runs-on: ubuntu-latest
-    
+
     permissions:
       contents: write
 
@@ -161,7 +161,7 @@ jobs:
           body: |
             ## DeepRead ${{ github.ref_name }}
 
-            ### Electron Apps
+            ### Desktop Apps
             - macOS: [DeepRead-App-macOS-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-App-macOS-${{ github.ref_name }}.dmg)
             - Windows: [DeepRead-App-Windows-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-App-Windows-${{ github.ref_name }}.exe)
             - Linux: [DeepRead-App-Linux-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-App-Linux-${{ github.ref_name }}.deb)
