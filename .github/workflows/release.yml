@@ -34,9 +34,8 @@ jobs:
 
       - name: Install backend dependencies
         run: |
-          cd backend
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          python -m pip install .
           python -m pip install pyinstaller
 
       - name: Install root dependencies
@@ -110,7 +109,7 @@ jobs:
 
       - name: Publish to PyPI
         env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: python -m twine upload dist/*
 
