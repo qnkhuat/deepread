@@ -16,14 +16,34 @@ let backendPort = 8345; // Default port, will be dynamically assigned if busy
 const logToFile = (message) => {
   const timestamp = new Date().toISOString();
   const logMessage = `${timestamp} - ${message}\n`;
-  fs.appendFileSync('/Users/earther/tmp/log.txt', logMessage);
+  
+  // Get platform-specific log directory
+  let logPath;
+  if (process.platform === 'darwin') {
+    // macOS: ~/Library/Logs/[AppName]
+    logPath = path.join(app.getPath('home'), 'Library', 'Logs', app.getName());
+  } else if (process.platform === 'win32') {
+    // Windows: %USERPROFILE%\AppData\Local\[AppName]\Logs
+    logPath = path.join(app.getPath('userData'), 'Logs');
+  } else {
+    // Linux: ~/.config/[AppName]/logs
+    logPath = path.join(app.getPath('userData'), 'logs');
+  }
+  
+  // Ensure log directory exists
+  if (!fs.existsSync(logPath)) {
+    fs.mkdirSync(logPath, { recursive: true });
+  }
+  
+  const logFile = path.join(logPath, 'app.log');
+  fs.appendFileSync(logFile, logMessage);
 };
 
 // Function to find an available port
 async function findAvailablePort(startPort, endPort) {
   try {
     const port = await portscanner.findAPortNotInUse(startPort, endPort, '127.0.0.1');
-    console.log(`Found available port: ${port}`);
+    logToFile(`Found available port: ${port}`);
     return port;
   } catch (error) {
     console.error(`Error finding available port: ${error}`);
@@ -36,14 +56,14 @@ function sleep(ms) {
 }
 
 async function waitForBackend(maxAttempts = 30) {
-  console.log('Waiting for backend to become available...');
+  logToFile('Waiting for backend to become available...');
   for (let i = 0; i < maxAttempts; i++) {
 
     try {
-      console.log(`Attempt ${i + 1}/${maxAttempts} to connect to backend at port ${backendPort}...`);
-      const response = await fetch(`http://localhost:${backendPort}`);
+      logToFile(`Attempt ${i + 1}/${maxAttempts} to connect to backend at port ${backendPort}...`);
+      const response = await fetch(`http://localhost:${backendPort}/api`);
       if (response.ok) {
-        console.log('Backend is up and running!');
+        logToFile('Backend is up and running!');
         return;
       } else {
         console.error(`Backend responded with status ${response.status}`);
@@ -64,29 +84,29 @@ async function startBackend() {
   // Find an available port first
   if (app.isPackaged) {
     backendPort = await findAvailablePort(8345, 8999);
-    console.log(`Using port ${backendPort} for backend`);
+    logToFile(`Using port ${backendPort} for backend`);
 
-    console.log('Starting Python backend in production mode...');
+    logToFile('Starting Python backend in production mode...');
 
     // Path to the Python executable in the resources directory
     let backendExePath;
     if (process.platform === 'darwin') {
       // macOS
-      backendExePath = path.join(process.resourcesPath, 'backend', 'backend');
+      backendExePath = path.join(process.resourcesPath, 'dist', 'backend');
     } else if (process.platform === 'win32') {
       // Windows
-      backendExePath = path.join(process.resourcesPath, 'backend', 'backend.exe');
+      backendExePath = path.join(process.resourcesPath, 'dist', 'backend.exe');
     } else {
       // Linux or other platforms
-      backendExePath = path.join(process.resourcesPath, 'backend', 'backend');
+      backendExePath = path.join(process.resourcesPath, 'dist', 'backend');
     }
-    console.log("BACKEND PATH: ", backendExePath);
+    logToFile("BACKEND PATH: ", backendExePath);
 
     // Make sure the executable has proper permissions on macOS/Linux
     if (process.platform !== 'win32') {
       try {
         fs.chmodSync(backendExePath, '755');
-        console.log('Set executable permissions for backend');
+        logToFile('Set executable permissions for backend');
       } catch (error) {
         console.error('Failed to set executable permissions: ' + error);
       }
@@ -101,7 +121,7 @@ async function startBackend() {
           PORT: backendPort.toString()
         }
       });
-      console.log('Backend process spawned with PID: ' + backendProcess.pid);
+      logToFile('Backend process spawned with PID: ' + backendProcess.pid);
     } catch (error) {
       console.error('Failed to spawn backend process: ' + error);
       app.quit();
@@ -114,7 +134,7 @@ async function startBackend() {
     });
 
     backendProcess.on('exit', (code, signal) => {
-      console.log(`Backend process exited with code ${code}, signal: ${signal}`);
+      logToFile(`Backend process exited with code ${code}, signal: ${signal}`);
       if (code !== 0) {
         console.error(`Backend process failed with code ${code}, signal: ${signal}`);
         app.quit();
@@ -122,7 +142,7 @@ async function startBackend() {
     });
   } else {
     // In development mode, the backend is started via npm script
-    console.log('In development mode, backend should be started via npm script');
+    logToFile('In development mode, backend should be started via npm script');
   }
 
   waitForBackend().catch(err => {
@@ -166,7 +186,7 @@ function createWindow() {
   // Send the backend port to the frontend
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.send('backend-port', backendPort);
-    console.log(`Sent backend port ${backendPort} to frontend`);
+    logToFile(`Sent backend port ${backendPort} to frontend`);
   });
 }
 
@@ -185,10 +205,10 @@ app.whenReady().then(async () => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', function () {
-  console.log('All windows closed');
+  logToFile('All windows closed');
   if (process.platform !== 'darwin') {
     if (backendProcess) {
-      console.log('Killing backend process');
+      logToFile('Killing backend process');
       backendProcess.kill();
     }
     app.quit();
@@ -197,7 +217,7 @@ app.on('window-all-closed', function () {
 
 app.on('before-quit', () => {
   if (backendProcess) {
-    console.log('Killing backend process before quit');
+    logToFile('Killing backend process before quit');
     backendProcess.kill();
   }
 });
