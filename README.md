@@ -9,6 +9,34 @@ DeepRead is an Electron application with a Python backend that allows users to:
 - Chat with LLMs about the content
 - Extract and process text from PDFs
 
+## Installation
+
+### Using pip
+
+You can install DeepRead directly from PyPI:
+
+```bash
+pip install deepread
+```
+
+After installation, you can run the application with:
+
+```bash
+deepread serve
+```
+
+This will start the server at http://127.0.0.1:8000 by default.
+
+To see all available commands:
+
+```bash
+deepread --help
+```
+
+### Using pre-built binaries
+
+Pre-built binaries for Windows, macOS, and Linux are available on the [Releases](https://github.com/yourusername/DeepRead/releases) page.
+
 ## Development
 
 For local development, you can run:

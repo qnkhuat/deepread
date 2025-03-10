@@ -12,6 +12,7 @@ from typing import List
 import logging
 import traceback
 import sys
+import platform
 
 logger = logging.getLogger(__name__)
 
@@ -47,29 +48,24 @@ def is_bundled():
 
 # Get the directory where frontend files are located
 def get_frontend_dir():
+    # First, check if the frontend directory is specified in an environment variable
+    if "DEEPREAD_FRONTEND_DIR" in os.environ:
+        return os.environ["DEEPREAD_FRONTEND_DIR"]
+    
+    # If running in a PyInstaller bundle
     if is_bundled():
         # When bundled with PyInstaller, frontend files are in 'frontend' directory next to the executable
-        base_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname(__file__)))
-        frontend_dir = os.path.join(base_dir, 'frontend')
-        print(f"Running in bundled mode. Looking for frontend files at: {frontend_dir}")
-        if os.path.exists(frontend_dir):
-            print(f"Frontend directory found at: {frontend_dir}")
-            print(f"Contents: {os.listdir(frontend_dir)}")
+        if platform.system() == "Windows":
+            base_dir = os.path.dirname(sys.executable)
         else:
-            print(f"WARNING: Frontend directory not found at: {frontend_dir}")
-        return frontend_dir
-    else:
-        # In development, serve frontend files from the frontend/dist directory
-        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-        frontend_dist = os.path.join(root_dir, "frontend", "dist")
-        print(f"Running in development mode. Looking for frontend files at: {frontend_dist}")
-        if os.path.exists(frontend_dist):
-            print(f"Frontend directory found at: {frontend_dist}")
-            print(f"Contents: {os.listdir(frontend_dist)}")
-            return frontend_dist
-        else:
-            print(f"WARNING: Frontend directory not found at: {frontend_dist}")
-        return None
+            base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+        frontend_dir = os.path.join(base_dir, "frontend")
+        return frontend_dir if os.path.exists(frontend_dir) else None
+    
+    # In development mode, look for frontend/dist in the repo root
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    frontend_dir = os.path.join(root_dir, "frontend", "dist")
+    return frontend_dir if os.path.exists(frontend_dir) else None
 
 @api_router.get("")
 async def api_root():

@@ -1,0 +1,4 @@
+include README.md
+include LICENSE
+include backend/requirements.txt
+recursive-include frontend/dist * 
