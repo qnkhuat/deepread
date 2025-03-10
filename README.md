@@ -1,5 +1,7 @@
 # DeepRead
 
+[![PyPI version](https://badge.fury.io/py/deepread.svg)](https://badge.fury.io/py/deepread)
+
 A desktop application for reading and analyzing PDFs with LLM support.
 
 ![Deep Read screenshot](./statics/demo.png)
