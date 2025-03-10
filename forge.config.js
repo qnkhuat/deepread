@@ -50,15 +50,6 @@ module.exports = {
         },
       },
     },
-    {
-      name: '@electron-forge/maker-rpm',
-      config: {
-        options: {
-          icon: path.resolve(__dirname, './frontend/public/icon/png/1024x1024.png'),
-          categories: ['Utility'],
-        },
-      },
-    },
   ],
   publishers: [
     {
