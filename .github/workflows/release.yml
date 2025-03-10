@@ -45,6 +45,20 @@ jobs:
       - name: Build application
         run: npm run build:electron
 
+      - name: Rename electron app for distribution
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            # Find the installer and rename it
+            find dist -name "*.exe" -exec mv {} dist/DeepRead-App-Windows-${{ github.ref_name }}.exe \;
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            # Find the DMG and rename it
+            find dist -name "*.dmg" -exec mv {} dist/DeepRead-App-macOS-${{ github.ref_name }}.dmg \;
+          else
+            # Find the AppImage and rename it
+            find dist -name "*.AppImage" -exec mv {} dist/DeepRead-App-Linux-${{ github.ref_name }}.AppImage \;
+          fi
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -137,9 +151,9 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            artifacts/electron-macos-latest/deep-read-*.dmg
-            artifacts/electron-windows-latest/deep-read*Setup*.exe
-            artifacts/electron-ubuntu-latest/deep-read-*.AppImage
+            artifacts/electron-macos-latest/DeepRead-App-macOS-${{ github.ref_name }}.dmg
+            artifacts/electron-windows-latest/DeepRead-App-Windows-${{ github.ref_name }}.exe
+            artifacts/electron-ubuntu-latest/DeepRead-App-Linux-${{ github.ref_name }}.AppImage
             artifacts/binary-macos-latest/DeepRead-binary-macOS-${{ github.ref_name }}
             artifacts/binary-windows-latest/DeepRead-binary-Windows-${{ github.ref_name }}.exe
             artifacts/binary-ubuntu-latest/DeepRead-binary-Linux-${{ github.ref_name }}
@@ -147,9 +161,9 @@ jobs:
             ## DeepRead ${{ github.ref_name }}
 
             ### Electron Apps
-            - macOS: [DeepRead-macOS-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/deep-read-*.dmg)
-            - Windows: [DeepRead-Windows-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/deep-read*Setup*.exe)
-            - Linux: [DeepRead-Linux-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/deep-read-*.AppImage)
+            - macOS: [DeepRead-App-macOS-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-App-macOS-${{ github.ref_name }}.dmg)
+            - Windows: [DeepRead-App-Windows-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-App-Windows-${{ github.ref_name }}.exe)
+            - Linux: [DeepRead-App-Linux-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-App-Linux-${{ github.ref_name }}.AppImage)
 
             ### Executables
             - macOS: [DeepRead-binary-macOS-${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DeepRead-binary-macOS-${{ github.ref_name }})
