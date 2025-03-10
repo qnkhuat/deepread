@@ -8,7 +8,7 @@
     "dev:electron": "concurrently -n 'frontend,electron,backend' -c 'yellow,blue,green' 'cd frontend && VITE_WATCH=true npm run dev' 'electron .' 'cd backend && fastapi dev main.py --port=8345'",
     "dev:web": "cd frontend && npm run build && cd .. && concurrently -n 'frontend,backend' -c 'yellow,green' 'cd frontend && VITE_WATCH=true npm run build:watch' 'cd backend && fastapi dev main.py'",
     "build:frontend": "cd frontend && npm install && npm run build",
-    "build:electron": "npm run build:frontend && cd backend && python build.py && cd .. && electron-forge make"
+    "build:electron": "npm run build:frontend && cd backend && python build_binary.py && cd .. && electron-forge make"
   },
   "config": {
     "forge": "./forge.config.js"
