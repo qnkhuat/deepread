@@ -23,8 +23,9 @@ app = FastAPI()  # Main app
 api_router = APIRouter(prefix="/api")
 
 def config_to_client(provider_name: str, config: dict):
-    api_key = config["api_key"]["value"]
-    base_url = config["base_url"]["value"]
+    api_key = config.get("api_key", None)
+    base_url = config.get("base_url", None)
+
     if provider_name == "anthropic":
         return openai.OpenAI(api_key=api_key,
                              base_url=base_url,
@@ -51,7 +52,7 @@ def get_frontend_dir():
     # First, check if the frontend directory is specified in an environment variable
     if "DEEPREAD_FRONTEND_DIR" in os.environ:
         return os.environ["DEEPREAD_FRONTEND_DIR"]
-    
+
     # If running in a PyInstaller bundle
     if is_bundled():
         # When bundled with PyInstaller, frontend files are in 'frontend' directory next to the executable
@@ -61,7 +62,7 @@ def get_frontend_dir():
             base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
         frontend_dir = os.path.join(base_dir, "frontend")
         return frontend_dir if os.path.exists(frontend_dir) else None
-    
+
     # In development mode, look for frontend/dist in the repo root
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     frontend_dir = os.path.join(root_dir, "frontend", "dist")
@@ -222,12 +223,25 @@ async def get_available_models(provider_config: ProviderConfig):
         model_ids = [model.id for model in models_response.data]
 
         return {"models": model_ids}
+    except openai.AuthenticationError as e:
+        logger.error(f"Error fetching models: {str(e)}")
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Invalid API key"}
+        )
     except Exception as e:
         logger.error(f"Error fetching models: {str(e)}")
         return JSONResponse(
-            status_code=500,
-            content={"message": f"Failed to fetch models: {str(e)}"}
+            status_code=400,
+            content={"error": f"Failed to fetch models: {str(e)}"}
         )
+
+client = config_to_client("openai", {"api_key": "sup"})
+e = None
+try:
+    client.models.list()
+except openai.AuthenticationError as e:
+    print(type(e))
 
 # Add logging middleware to debug the request flow
 @app.middleware("http")

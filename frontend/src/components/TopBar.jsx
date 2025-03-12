@@ -8,6 +8,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { useState, useEffect } from 'react';
 import * as api from '@/api';
+import * as providerUtils from '../utils/providerUtils';
 
 function TopBar() {
   const { settings, updateSetting } = useSettings();
@@ -16,33 +17,37 @@ function TopBar() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [providerLoading, setProviderLoading] = useState({});
+  const [providerErrors, setProviderErrors] = useState({});
+  const [providerSuccess, setProviderSuccess] = useState({});
   const [expandedProviders, setExpandedProviders] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredModels, setFilteredModels] = useState({});
-
-  // Check if any provider is configured
-  const isAnyProviderConfigured = () => {
-    return Object.keys(settings.providers).some(providerName => 
-      isProviderConfigured(providerName)
-    );
-  };
 
   // Fetch models only for configured providers that don't have models cached
   const fetchModelsForProviders = async () => {
     setIsLoading(true);
     try {
       for (const [providerName, providerInfo] of Object.entries(settings.providers)) {
-        if (isProviderConfigured(providerName) && 
-            isProviderEnabled(providerName) &&
-            (!providerInfo.models || providerInfo.models.length === 0)) {
+        if (providerUtils.isProviderConfigured(providerInfo, providerName) && 
+            providerUtils.isProviderEnabled(providerInfo) &&
+            !providerUtils.hasModels(providerInfo)) {
           try {
-            const models = await api.getModels(providerName, providerInfo.config);
-            if (models && Array.isArray(models)) {
+            const models = await api.getModels(providerName, providerInfo);
+            if (Array.isArray(models)) {
               updateSetting(['providers', providerName, 'models'], models);
-            }
+              // Clear any previous error
+              setProviderErrors(prev => ({
+                ...prev,
+                [providerName]: null
+              }));
+            } 
           } catch (error) {
             console.error(`Error fetching models for ${providerName}:`, error);
-            updateSetting(['providers', providerName, 'error'], error.message);
+            setProviderErrors(prev => ({
+              ...prev,
+              [providerName]: 'Failed to fetch models'
+            }));
           }
         }
       }
@@ -55,7 +60,7 @@ function TopBar() {
 
   // Show config modal if no provider is configured or select first available model
   useEffect(() => {
-    if (!isAnyProviderConfigured()) {
+    if (!providerUtils.isAnyProviderConfigured(settings.providers)) {
       handleOpenConfig();
     } else {
       fetchModelsForProviders().then(() => {
@@ -69,34 +74,93 @@ function TopBar() {
 
   // Function to select the first available model
   const selectFirstAvailableModel = () => {
-    for (const [providerName, providerInfo] of Object.entries(settings.providers)) {
-      if (isProviderConfigured(providerName) && 
-          isProviderEnabled(providerName) &&
-          providerInfo.models && 
-          providerInfo.models.length > 0) {
-        updateSetting('current_model', [providerName, providerInfo.models[0]]);
-        return;
-      }
+    const firstModel = providerUtils.findFirstAvailableModel(settings.providers);
+    if (firstModel) {
+      updateSetting('current_model', firstModel);
     }
   };
 
   const handleOpenConfig = () => {
+    // Create a deep copy of the current settings
     setTempSettings(JSON.parse(JSON.stringify(settings.providers)));
     setConfigOpen(true);
   };
 
-  const handleSave = () => {
-    Object.entries(tempSettings).forEach(([providerName, providerInfo]) => {
-      Object.entries(providerInfo.config).forEach(([key, config]) => {
-        if (config.value !== undefined) {
-          updateSetting(['providers', providerName, 'config', key, 'value'], config.value);
+  // Handle saving provider configuration
+  const handleSaveProviderConfig = async (providerName) => {
+    const providerInfo = tempSettings[providerName];
+    
+    // Set loading state and clear previous messages
+    setProviderLoading(prev => ({ ...prev, [providerName]: true }));
+    setProviderErrors(prev => ({ ...prev, [providerName]: null }));
+    setProviderSuccess(prev => ({ ...prev, [providerName]: null }));
+    
+    try {
+      // Save the configuration first
+      updateSetting(['providers', providerName, 'api_key'], providerInfo.api_key);
+      updateSetting(['providers', providerName, 'base_url'], providerInfo.base_url);
+      
+      // Test connection and fetch models - result is the models array directly
+      const models = await api.getModels(providerName, providerInfo);
+      
+      // Check if models is a valid array
+      if (!Array.isArray(models)) {
+        throw new Error('Invalid response: Models is not an array');
+      }
+      
+      // Update models in settings
+      updateSetting(['providers', providerName, 'models'], models);
+      updateSetting(['providers', providerName, 'enabled'], true);
+      
+      // Update temp settings
+      setTempSettings(prev => ({
+        ...prev,
+        [providerName]: {
+          ...prev[providerName],
+          enabled: true
         }
-      });
-      updateSetting(['providers', providerName, 'enabled'], providerInfo.enabled);
-    });
-    setConfigOpen(false);
-    // Fetch models after saving new configurations
-    fetchModelsForProviders();
+      }));
+      
+      // Set success message
+      setProviderSuccess(prev => ({
+        ...prev,
+        [providerName]: `Successfully connected to ${providerName} and found ${models.length} models`
+      }));
+    } catch (error) {
+      console.error(`Error saving provider ${providerName} config:`, error);
+      setProviderErrors(prev => ({
+        ...prev,
+        [providerName]: error.message || 'Unexpected error occurred'
+      }));
+    } finally {
+      setProviderLoading(prev => ({ ...prev, [providerName]: false }));
+    }
+  };
+
+  // Handle disabling a provider
+  const handleDisableProvider = (providerName) => {
+    // Disable the provider
+    updateSetting(['providers', providerName, 'enabled'], false);
+    
+    // Update temp settings to reflect the disabled state
+    setTempSettings(prev => ({
+      ...prev,
+      [providerName]: {
+        ...prev[providerName],
+        enabled: false
+      }
+    }));
+    
+    // Clear any errors and success messages when disabling
+    setProviderErrors(prev => ({
+      ...prev,
+      [providerName]: null
+    }));
+    
+    setProviderSuccess(prev => ({
+      ...prev,
+      [providerName]: null
+    }));
   };
 
   const handleClick = (event) => {
@@ -110,15 +174,8 @@ function TopBar() {
     setSearchTerm('');
   };
 
-  const isProviderConfigured = (providerName) => {
-    const provider = settings.providers[providerName];
-    return Object.entries(provider.config).every(([_, config]) => {
-      return !config.required || (config.value !== undefined && config.value !== '');
-    });
-  };
-
   const handleModelSelect = (providerName, modelName) => {
-    if (!isProviderConfigured(providerName)) {
+    if (!providerUtils.isProviderConfigured(settings.providers[providerName], providerName)) {
       setTempSettings(JSON.parse(JSON.stringify(settings.providers)));
       setConfigOpen(true);
     } else {
@@ -127,17 +184,25 @@ function TopBar() {
     handleClose();
   };
 
-  // Add a button to refresh models in the settings modal
+  // We don't need the global save button anymore, but keep the refresh models functionality
   const handleRefreshModels = async () => {
-   // Clear cached models
-   Object.keys(settings.providers).forEach(providerName => {
-     if (isProviderConfigured(providerName)) {
-       updateSetting(['providers', providerName, 'models'], []);
-     }
-   });
-   
-   // Fetch models again
-   await fetchModelsForProviders();
+    setIsLoading(true);
+    
+    try {
+      // Clear cached models for all configured and enabled providers
+      Object.keys(settings.providers).forEach(providerName => {
+        const provider = settings.providers[providerName];
+        if (providerUtils.isProviderConfigured(provider, providerName) && 
+            providerUtils.isProviderEnabled(provider)) {
+          updateSetting(['providers', providerName, 'models'], []);
+        }
+      });
+      
+      // Fetch models again
+      await fetchModelsForProviders();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Initialize expanded state for providers
@@ -162,13 +227,7 @@ function TopBar() {
     const filtered = {};
     
     Object.entries(settings.providers).forEach(([providerName, providerInfo]) => {
-      if (providerInfo.models && providerInfo.models.length > 0) {
-        filtered[providerName] = providerInfo.models.filter(model => 
-          model.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      } else {
-        filtered[providerName] = [];
-      }
+      filtered[providerName] = providerUtils.filterModels(providerInfo, searchTerm);
     });
     
     setFilteredModels(filtered);
@@ -176,11 +235,6 @@ function TopBar() {
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
-  };
-
-  // Add a new function to check if a provider is enabled
-  const isProviderEnabled = (providerName) => {
-    return settings.providers[providerName]?.enabled === true;
   };
 
   return (
@@ -198,8 +252,7 @@ function TopBar() {
                 src={window.electron.getAssetPath ? window.electron.getAssetPath('icon/png/64x64.png') : './icon/png/64x64.png'} 
                 alt="DeepRead Logo" 
                 style={{ height: '32px', width: 'auto' }} 
-              />
-            ) : (
+              />            ) : (
               <img 
                 src="/icon/png/64x64.png" 
                 alt="DeepRead Logo" 
@@ -252,8 +305,8 @@ function TopBar() {
                 return null;
               }
               
-              const isEnabled = isProviderEnabled(providerName);
-              const isConfigured = isProviderConfigured(providerName);
+              const isEnabled = providerUtils.isProviderEnabled(providerInfo);
+              const isConfigured = providerUtils.isProviderConfigured(providerInfo, providerName);
               
               return (
                 <div key={providerName}>
@@ -294,7 +347,7 @@ function TopBar() {
                         ))
                       ) : isEnabled && (
                         // Show all models when not searching
-                        (providerInfo.models || []).map(modelName => (
+                        providerUtils.getModels(providerInfo).map(modelName => (
                           <MenuItem 
                             key={modelName}
                             onClick={() => handleModelSelect(providerName, modelName)}
@@ -304,13 +357,28 @@ function TopBar() {
                         ))
                       )}
                       
-                      {isEnabled && (!providerInfo.models || providerInfo.models.length === 0) && (
+                      {isEnabled && !providerUtils.hasModels(providerInfo) && (
                         <MenuItem disabled>
-                          {isProviderConfigured(providerName) 
-                            ? (providerInfo.error 
-                               ? `Error: ${providerInfo.error}` 
+                          {isConfigured 
+                            ? (providerErrors[providerName] 
+                               ? providerErrors[providerName]
                                : 'Loading models...') 
                             : 'Configure provider first'}
+                        </MenuItem>
+                      )}
+                      
+                      {!isEnabled && (
+                        <MenuItem 
+                          onClick={() => {
+                            handleOpenConfig();
+                            handleClose();
+                          }}
+                          sx={{ 
+                            color: 'primary.main',
+                            fontWeight: 'medium'
+                          }}
+                        >
+                          Configure {providerName}
                         </MenuItem>
                       )}
                     </>
@@ -355,77 +423,99 @@ function TopBar() {
           <h2>Provider Configuration</h2>
           {Object.entries(settings.providers).map(([providerName, providerInfo]) => (
             <Box key={providerName} sx={{ mb: 3, pb: 2, borderBottom: '1px solid #e0e0e0' }}>
-              <Typography variant="h6" sx={{mt: 2, mb: 1}}>{providerName}</Typography>
-              {Object.entries(providerInfo.config).map(([key, config]) => (
-                <TextField
-                  key={`${providerName}-${key}`}
-                  label={config.label}
-                  value={tempSettings[providerName]?.config[key]?.value || ''}
-                  onChange={(e) => {
-                    setTempSettings(prev => ({
-                      ...prev,
-                      [providerName]: {
-                        ...prev[providerName],
-                        config: {
-                          ...prev[providerName].config,
-                          [key]: {
-                            ...prev[providerName].config[key],
-                            value: e.target.value
-                          }
-                        }
-                      }
-                    }));
-                  }}
-                  required={config.required}
-                  type={config.type === 'password' ? 'password' : 'text'}
-                  fullWidth
-                  margin="normal"
-                  size="small"
-                />
-              ))}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6" sx={{mt: 2, mb: 1}}>{providerName}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {tempSettings[providerName]?.enabled ? (
+                    <Typography variant="body2" color="success.main" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <CheckCircleIcon fontSize="small" />
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <CancelIcon fontSize="small" />
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
               
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={tempSettings[providerName]?.enabled}
-                    onChange={(e) => {
-                      setTempSettings(prev => ({
-                        ...prev,
-                        [providerName]: {
-                          ...prev[providerName],
-                          enabled: e.target.checked
-                        }
-                      }));
-                    }}
-                    color="primary"
-                  />
-                }
-                label="Enable Provider"
-                sx={{ mt: 1 }}
+              {providerErrors[providerName] && (
+                <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+                  Error: {providerErrors[providerName]}
+                </Typography>
+              )}
+              
+              {providerSuccess[providerName] && (
+                <Typography color="success.main" variant="body2" sx={{ mb: 2 }}>
+                  {providerSuccess[providerName]}
+                </Typography>
+              )}
+              
+              <TextField
+                key={`${providerName}-api_key`}
+                label="API Key"
+                value={tempSettings[providerName]?.api_key || ''}
+                onChange={(e) => {
+                  setTempSettings(prev => ({
+                    ...prev,
+                    [providerName]: {
+                      ...prev[providerName],
+                      api_key: e.target.value
+                    }
+                  }));
+                }}
+                required={providerName !== 'ollama'}
+                type="password"
+                fullWidth
+                margin="normal"
+                size="small"
               />
+              
+              <TextField
+                key={`${providerName}-base_url`}
+                label="Base URL"
+                value={tempSettings[providerName]?.base_url || ''}
+                onChange={(e) => {
+                  setTempSettings(prev => ({
+                    ...prev,
+                    [providerName]: {
+                      ...prev[providerName],
+                      base_url: e.target.value
+                    }
+                  }));
+                }}
+                required={providerName === 'ollama'}
+                type="text"
+                fullWidth
+                margin="normal"
+                size="small"
+              />
+              
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                {tempSettings[providerName]?.enabled ? (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    onClick={() => handleDisableProvider(providerName)}
+                    disabled={providerLoading[providerName]}
+                  >
+                    Disable
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    size="small"
+                    onClick={() => handleSaveProviderConfig(providerName)}
+                    disabled={providerLoading[providerName]}
+                  >
+                    {providerLoading[providerName] ? 'Testing connection...' : 'Test & Enable'}
+                  </Button>
+                )}
+              </Box>
             </Box>
           ))}
           
-          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
-            <Button 
-              variant="outlined" 
-              onClick={handleRefreshModels}
-              disabled={isLoading}
-            >
-              Refresh Models
-            </Button>
-            <Box>
-              <Button 
-                variant="contained" 
-                onClick={handleSave}
-                disabled={isLoading}
-                sx={{ ml: 1 }}
-              >
-                {isLoading ? 'Saving...' : 'Save'}
-              </Button>
-              <Button variant="outlined" onClick={() => setConfigOpen(false)}>Cancel</Button>
-            </Box>
-          </Box>
         </Box>
       </Modal>
     </Container>

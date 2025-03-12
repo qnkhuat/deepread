@@ -116,7 +116,7 @@ export const getModels = async (providerName, config) => {
   });
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || 'Failed to fetch models');
+    throw new Error(error.message || error.error || 'Failed to fetch models');
   }
 
   const data = await response.json();

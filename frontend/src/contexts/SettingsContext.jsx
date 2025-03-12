@@ -2,72 +2,28 @@ import {createContext, useContext, useState} from 'react';
 
 const PROVIDER_CONFIG = {
   openai: {
-    models: ["gpt-4.5-preview", "gpt-4o-mini", "gpt-4o"],
     enabled: false,
-    config: {
-      api_key: {
-        type: "text",
-        label: "API Key",
-        required: true
-      },
-      base_url: {
-        type: "text",
-        label: "Base URL",
-        required: false,
-        value: "https://api.openai.com/v1"
-      }
-    }
+    models: [],
+    api_key: "",
+    base_url: "https://api.openai.com/v1"
   },
   anthropic: {
-    models: ["claude-3-7-sonnet", "claude-3-5-haiku"],
     enabled: false,
-    config: {
-      api_key: {
-        type: "text",
-        label: "API Key",
-        required: true
-      },
-      base_url: {
-        type: "text",
-        label: "Base URL",
-        required: false,
-        value: "https://api.anthropic.com/v1"
-      }
-    }
-  },
-  deepseek: {
-    models: ["deepseek-chat", "deepseek-reasoner"],
-    enabled: false,
-    config: {
-      api_key: {
-        type: "text",
-        label: "API Key",
-        required: true
-      },
-      base_url: {
-        type: "text",
-        label: "Base URL",
-        required: false,
-        value: "https://api.deepseek.com"
-      }
-    }
+    models: [],
+    api_key: "",
+    base_url: "https://api.anthropic.com/v1"
   },
   ollama: {
     enabled: false,
-    config: {
-      base_url: {
-        type: "text",
-        label: "Base URL",
-        required: true,
-        value: "http://localhost:11434/v1"
-      },
-      api_key: {
-        type: "text",
-        label: "API Key",
-        value: "ollama",
-        required: false
-      }
-    }
+    models: [],
+    api_key: "ollama",
+    base_url: "http://localhost:11434/v1"
+  },
+  deepseek: {
+    enabled: false,
+    models: [],
+    api_key: "",
+    base_url: "https://api.deepseek.com"
   }
 }
 

@@ -65,11 +65,13 @@ function Viewer() {
   const [sessionCost, setSessionCost] = useState(0);
 
   const sendChatRequest = async (messages, onChunk) => {
-    console.log(settings);
     const providerConfig = {
       provider_name: settings.current_model[0],
       model_name: settings.current_model[1],
-      config: settings.providers[settings.current_model[0]].config
+      config: {
+        api_key: settings.providers[settings.current_model[0]].api_key,
+        base_url: settings.providers[settings.current_model[0]].base_url
+      }
     };
 
     return api.postChat(messages, providerConfig, (data) => {
