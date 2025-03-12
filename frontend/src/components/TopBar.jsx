@@ -58,9 +58,9 @@ function TopBar() {
     }
   };
 
-  // Show config modal if no provider is configured or select first available model
+  // Show config modal if no provider is enabled or select first available model
   useEffect(() => {
-    if (!providerUtils.isAnyProviderConfigured(settings.providers)) {
+    if (!providerUtils.isAnyProviderEnabled(settings.providers)) {
       handleOpenConfig();
     } else {
       fetchModelsForProviders().then(() => {
@@ -265,9 +265,13 @@ function TopBar() {
           <Button
             size="small"
             onClick={handleClick}
-            variant="outlined"
+            variant={providerUtils.isAnyProviderEnabled(settings.providers) ? "outlined" : "contained"}
+            color={providerUtils.isAnyProviderEnabled(settings.providers) ? "primary" : "warning"}
+            startIcon={!providerUtils.isAnyProviderEnabled(settings.providers) ? <SettingsIcon /> : null}
           >
-            {settings.current_model ? `${settings.current_model[0]} - ${settings.current_model[1]}` : 'Select a model'}
+            {providerUtils.isAnyProviderEnabled(settings.providers) 
+              ? (settings.current_model ? `${settings.current_model[0]} - ${settings.current_model[1]}` : 'Select a model')
+              : 'Configure Provider First'}
           </Button>
           <Menu
             anchorEl={anchorEl}
@@ -404,7 +408,12 @@ function TopBar() {
 
       <Modal
         open={configOpen}
-        onClose={() => setConfigOpen(false)}
+        onClose={() => {
+          // Only allow closing if at least one provider is enabled
+          if (providerUtils.isAnyProviderEnabled(settings.providers)) {
+            setConfigOpen(false);
+          }
+        }}
         aria-labelledby="provider-config-modal"
       >
         <Box sx={{
@@ -421,6 +430,25 @@ function TopBar() {
           overflow: 'auto'
         }}>
           <h2>Provider Configuration</h2>
+          {!providerUtils.isAnyProviderEnabled(settings.providers) && (
+            <Box sx={{ mb: 3, p: 2, bgcolor: 'primary.light', color: 'primary.contrastText', borderRadius: 1 }}>
+              <Typography variant="h6">Welcome to DeepRead!</Typography>
+              <Typography variant="body1" sx={{ mb: 1 }}>
+                To get started, please configure at least one AI provider below.
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Quick setup guide:</strong>
+              </Typography>
+              <Typography variant="body2" component="ul" sx={{ pl: 2 }}>
+                <li>For OpenAI: Enter your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" style={{color: 'inherit', textDecoration: 'underline'}}>OpenAI dashboard</a></li>
+                <li>For Anthropic: Enter your API key from <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{color: 'inherit', textDecoration: 'underline'}}>Anthropic console</a></li>
+                <li>For Ollama: Enter the base URL (e.g., http://localhost:11434) where Ollama is running</li>
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                Click "Test & Enable" after entering your credentials to connect.
+              </Typography>
+            </Box>
+          )}
           {Object.entries(settings.providers).map(([providerName, providerInfo]) => (
             <Box key={providerName} sx={{ mb: 3, pb: 2, borderBottom: '1px solid #e0e0e0' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -516,6 +544,17 @@ function TopBar() {
             </Box>
           ))}
           
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button 
+              variant="contained" 
+              onClick={() => setConfigOpen(false)}
+              disabled={!providerUtils.isAnyProviderEnabled(settings.providers)}
+            >
+              {providerUtils.isAnyProviderEnabled(settings.providers) 
+                ? 'Close' 
+                : 'Please enable at least one provider'}
+            </Button>
+          </Box>
         </Box>
       </Modal>
     </Container>

@@ -15,6 +15,7 @@ import 'react-pdf/dist/esm/Page/TextLayer.css';
 import Chat from '../components/Chat';
 import {useSettings} from '../contexts/SettingsContext';
 import * as api from '@/api';
+import * as providerUtils from '@/utils/providerUtils';
 
 // Set the worker source
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -65,13 +66,12 @@ function Viewer() {
   const [sessionCost, setSessionCost] = useState(0);
 
   const sendChatRequest = async (messages, onChunk) => {
+    const providerName = settings.current_model[0];
+    const modelName = settings.current_model[1];
     const providerConfig = {
-      provider_name: settings.current_model[0],
-      model_name: settings.current_model[1],
-      config: {
-        api_key: settings.providers[settings.current_model[0]].api_key,
-        base_url: settings.providers[settings.current_model[0]].base_url
-      }
+      provider_name: providerName,
+      model_name: modelName,
+      config: providerUtils.getProviderConfig(settings.providers[providerName])
     };
 
     return api.postChat(messages, providerConfig, (data) => {

@@ -104,6 +104,19 @@ export const isAnyProviderConfigured = (providers) => {
 };
 
 /**
+ * Check if any provider in the providers object is enabled
+ * @param {Object} providers - The providers object
+ * @returns {boolean} - Whether any provider is enabled
+ */
+export const isAnyProviderEnabled = (providers) => {
+  if (!providers) return false;
+  
+  return Object.entries(providers).some(([name, provider]) => 
+    isProviderEnabled(provider)
+  );
+};
+
+/**
  * Find the first available model across all providers
  * @param {Object} providers - The providers object
  * @returns {Array|null} - [providerName, modelName] or null if none found
