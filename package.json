@@ -1,15 +1,18 @@
 {
-  "name": "DeepRead",
+  "name": "deepread",
   "author": "qn.khuat@gmail.com",
   "version": "1.0.0",
-  "description": "Deep Read with LLM support",
+  "description": "Deep Read with LLM support - Frontend Only",
   "main": "app/main.js",
+  "bin": {
+    "deepread": "bin/deepread.js"
+  },
   "scripts": {
-    "dev:electron": "concurrently -n 'frontend,electron,backend' -c 'yellow,blue,green' 'cd frontend && VITE_WATCH=true npm run dev' 'electron .' 'cd backend && fastapi dev main.py --port=8345'",
-    "dev:web": "cd frontend && npm run build && cd .. && concurrently -n 'frontend,backend' -c 'yellow,green' 'cd frontend && VITE_WATCH=true npm run build:watch' 'cd backend && fastapi dev main.py'",
-    "build:frontend": "cd frontend && npm install && npm run build",
-    "build:electron": "npm run build:frontend && cd backend && python build_binary.py && cd .. && electron-forge make",
-    "install": "cd frontend && npm run build && cd .. && pip install -e ."
+    "dev": "cd frontend && npm run dev",
+    "dev:electron": "concurrently -n 'frontend,electron' -c 'yellow,blue' 'cd frontend && VITE_WATCH=true npm run dev' 'electron .'",
+    "build": "cd frontend && npm install && npm run build",
+    "build:electron": "npm run build && electron-forge make",
+    "preview": "cd frontend && npm run preview"
   },
   "config": {
     "forge": "./forge.config.js"
@@ -26,6 +29,7 @@
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
+    "open": "^9.1.0",
     "portscanner": "^2.2.0"
   },
   "license": "MIT"

@@ -6,7 +6,6 @@ module.exports = {
     appId: 'com.deepread.app',
     asar: true,
     executableName: 'DeepRead',
-    extraResource: ['./backend/dist'],
     icon: path.resolve(__dirname, './frontend/public/icon/macos/icon'),
     ignore: (path) => {
       // Include all production dependencies
@@ -20,8 +19,8 @@ module.exports = {
         return true;
       }
       
-      // Exclude other non-essential directories
-      return /^\/\.git|^\/\.github|^\/frontend\/(?!dist|public)|^\/backend\/(?!dist)|^\/build\/|^\/scripts\/|^\/\.lsp\/|^\/\.clj-kondo\//.test(path);
+      // Exclude other non-essential directories and backend
+      return /^\/\.git|^\/\.github|^\/frontend\/(?!dist|public)|^\/backend\/|^\/build\/|^\/scripts\/|^\/\.lsp\/|^\/\.clj-kondo\//.test(path);
     },
   },
   rebuildConfig: {},
@@ -72,35 +71,21 @@ module.exports = {
     packageAfterCopy: async (config, buildPath, electronVersion, platform, arch) => {
       console.log(`Packaging for ${platform} ${arch} complete!`);
       
-      // Create a backend directory in the resources folder if it doesn't exist
-      const resourcesPath = path.join(buildPath, 'resources');
-      const backendPath = path.join(resourcesPath, 'backend');
+      // Ensure frontend files are correctly placed
+      const frontendDistPath = path.join(__dirname, 'frontend', 'dist');
+      const destFrontendPath = path.join(buildPath, 'frontend', 'dist');
       
-      if (!fs.existsSync(backendPath)) {
-        fs.mkdirSync(backendPath, { recursive: true });
-      }
-      
-      // Ensure backend binary is correctly placed
-      const srcBackendDist = path.join(__dirname, 'backend', 'dist');
-      
-      if (fs.existsSync(srcBackendDist)) {
-        // Copy the backend binary and ensure it's at the right location
-        if (platform === 'darwin' || platform === 'linux') {
-          const backendBin = path.join(srcBackendDist, 'backend');
-          const destBin = path.join(backendPath, 'backend');
-          if (fs.existsSync(backendBin)) {
-            fs.copyFileSync(backendBin, destBin);
-            fs.chmodSync(destBin, '755'); // Ensure executable permissions
-          }
-        } else if (platform === 'win32') {
-          const backendBin = path.join(srcBackendDist, 'backend.exe');
-          const destBin = path.join(backendPath, 'backend.exe');
-          if (fs.existsSync(backendBin)) {
-            fs.copyFileSync(backendBin, destBin);
-          }
+      if (fs.existsSync(frontendDistPath)) {
+        // Create the destination directory if it doesn't exist
+        if (!fs.existsSync(path.dirname(destFrontendPath))) {
+          fs.mkdirSync(path.dirname(destFrontendPath), { recursive: true });
         }
+        
+        // Copy the frontend dist directory
+        fs.cpSync(frontendDistPath, destFrontendPath, { recursive: true });
+        console.log(`Copied frontend files to ${destFrontendPath}`);
       } else {
-        console.error('Backend dist directory not found! Did you build the backend first?');
+        console.error('Frontend dist directory not found! Did you build the frontend first?');
       }
     },
     postMake: async (forgeConfig, results) => {

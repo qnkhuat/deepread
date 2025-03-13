@@ -5,7 +5,17 @@ import { SettingsProvider } from './contexts/SettingsContext';
 import TopBar from './components/TopBar';
 import Viewer from './pages/Viewer';
 
-const theme = createTheme();
+// Create a theme instance
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+  },
+});
 
 function App() {
   return (
