@@ -110,9 +110,9 @@ function Viewer() {
 
       try {
         // Get a summarization of the document using the API service
-        const fileData = await api.postToMarkdown(file);
-        setPdfContent(fileData.content);
-        const initialMessages = [systemPrompt(fileData.content)];
+        const content = await api.postToMarkdown(file);
+        setPdfContent(content);
+        const initialMessages = [systemPrompt(content)];
         setSuggestedPrompts([
           'Summarize this document',
           'Extract key findings',

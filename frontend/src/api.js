@@ -103,7 +103,7 @@ export const postToMarkdown = async (file) => {
     }
     console.log(fullText);
 
-    return {content: fullText};
+    return fullText;
   } catch (error) {
     console.error('Error processing PDF:', error);
     throw new Error('Failed to process PDF file');
