@@ -46,33 +46,31 @@ jobs:
       - name: Rename electron app for distribution
         shell: bash
         run: |
+          mkdir -p out/make
+          
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            # Find the Squirrel installer and rename it
-            INSTALLER=$(find out/make -name "*.exe" -not -path "*/make-*/*" | head -n 1)
-            if [ -n "$INSTALLER" ]; then
-              mv "$INSTALLER" out/make/DeepRead-App-Windows-${{ github.ref_name }}.exe
-            else
-              echo "Warning: Windows installer not found"
-              exit 1
-            fi
+            FILE_TYPE="exe"
+            PLATFORM="Windows"
+            FIND_PATTERN="*.exe"
+            EXCLUDE_PATTERN="-not -path \"*/make-*/*\""
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            # Find the DMG and rename it
-            DMG=$(find out/make -name "*.dmg" | head -n 1)
-            if [ -n "$DMG" ]; then
-              mv "$DMG" out/make/DeepRead-App-macOS-${{ github.ref_name }}.dmg
-            else
-              echo "Warning: macOS DMG not found"
-              exit 1
-            fi
+            FILE_TYPE="dmg"
+            PLATFORM="macOS"
+            FIND_PATTERN="*.dmg"
+            EXCLUDE_PATTERN=""
           else
-            # Find the deb and rename it
-            DEB=$(find out/make -name "*.deb" | head -n 1)
-            if [ -n "$DEB" ]; then
-              mv "$DEB" out/make/DeepRead-App-Linux-${{ github.ref_name }}.deb
-            else
-              echo "Warning: Linux DEB not found"
-              exit 1
-            fi
+            FILE_TYPE="deb"
+            PLATFORM="Linux"
+            FIND_PATTERN="*.deb"
+            EXCLUDE_PATTERN=""
+          fi
+          
+          INSTALLER=$(find app/out/make -name "$FIND_PATTERN" $EXCLUDE_PATTERN | head -n 1)
+          if [ -n "$INSTALLER" ]; then
+            cp "$INSTALLER" out/make/DeepRead-App-$PLATFORM-${{ github.ref_name }}.$FILE_TYPE
+          else
+            echo "Warning: $PLATFORM installer not found"
+            exit 1
           fi
 
       - name: Upload artifacts
