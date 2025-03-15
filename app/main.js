@@ -12,7 +12,7 @@ let mainWindow;
 const logToFile = (message) => {
   const timestamp = new Date().toISOString();
   const logMessage = `${timestamp} - ${message}\n`;
-  
+
   // Get platform-specific log directory
   let logPath;
   if (process.platform === 'darwin') {
@@ -25,19 +25,19 @@ const logToFile = (message) => {
     // Linux: ~/.config/[AppName]/logs
     logPath = path.join(app.getPath('userData'), 'logs');
   }
-  
+
   // Ensure log directory exists
   if (!fs.existsSync(logPath)) {
-    fs.mkdirSync(logPath, { recursive: true });
+    fs.mkdirSync(logPath, {recursive: true});
   }
-  
+
   const logFile = path.join(logPath, 'app.log');
   fs.appendFileSync(logFile, logMessage);
 };
 
 function createWindow() {
   logToFile('Creating main window');
-  
+
   // Use platform-specific icons
   let iconPath;
   if (process.platform === 'darwin') {
@@ -48,7 +48,7 @@ function createWindow() {
     // Linux or other platforms
     iconPath = path.resolve(__dirname, '../frontend/public/icon/png/1024x1024.png');
   }
-  
+
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -63,17 +63,17 @@ function createWindow() {
 
   // Determine the location of the frontend files
   let frontendPath;
-  
+
   // In development mode, load from the dev server
   if (!app.isPackaged) {
-    frontendPath = 'http://localhost:5173';
+    frontendPath = 'http://localhost:8000';
     mainWindow.loadURL(frontendPath);
     // Open DevTools in development mode
     mainWindow.webContents.openDevTools();
   } else {
     // In production mode, load from the built files
     frontendPath = path.join(__dirname, '..', 'frontend', 'dist', 'index.html');
-    
+
     if (fs.existsSync(frontendPath)) {
       mainWindow.loadFile(frontendPath);
     } else {
@@ -116,7 +116,7 @@ app.on('ready', async () => {
 // Quit when all windows are closed
 app.on('window-all-closed', () => {
   logToFile('All windows closed');
-  
+
   // On macOS, applications keep their menu bar active until the user quits
   if (process.platform !== 'darwin') {
     app.quit();

@@ -1,12 +1,33 @@
 #!/usr/bin/env node
 
 const path = require('path');
-const { createServer } = require('http');
-const { readFileSync, existsSync } = require('fs');
-const open = require('open');
+const {createServer} = require('http');
+const {readFileSync, existsSync} = require('fs');
+const net = require('net');
 
-// Path to frontend files
-const frontendPath = path.join(__dirname, '..', 'frontend');
+// Path to frontend files - try multiple locations
+let frontendPath;
+
+// Check different possible locations for the frontend files
+const possiblePaths = [
+  // When running as an npm package
+  path.join(__dirname, 'frontend'),
+  // When running from the development environment
+  path.join(__dirname, '..', 'frontend', 'dist'),
+];
+
+// Find the first path that exists and contains an index.html file
+for (const p of possiblePaths) {
+  if (existsSync(p) && existsSync(path.join(p, 'index.html'))) {
+    frontendPath = p;
+    break;
+  }
+}
+
+if (!frontendPath) {
+  console.error('Could not find frontend files. Please make sure they are built correctly.');
+  process.exit(1);
+}
 
 // Simple content type mapping
 const contentTypes = {
@@ -19,25 +40,55 @@ const contentTypes = {
   '.svg': 'image/svg+xml'
 };
 
+// Function to check if a port is available
+function isPortAvailable(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+
+    server.once('error', () => {
+      resolve(false);
+    });
+
+    server.once('listening', () => {
+      server.close();
+      resolve(true);
+    });
+
+    server.listen(port);
+  });
+}
+
+// Function to find an available port
+async function findAvailablePort(startPort = 8080) {
+  let port = startPort;
+  while (!(await isPortAvailable(port))) {
+    port++;
+    if (port > startPort + 100) {
+      throw new Error('Could not find an available port after 100 attempts');
+    }
+  }
+  return port;
+}
+
 // Create server
 const server = createServer((req, res) => {
   try {
     // Default to index.html for root or non-existent files
     let url = req.url === '/' ? '/index.html' : req.url;
     let filePath = path.join(frontendPath, url);
-    
+
     // Serve index.html for routes that don't exist (for SPA routing)
     if (!existsSync(filePath)) {
       filePath = path.join(frontendPath, 'index.html');
     }
-    
+
     // Get content type based on file extension
     const ext = path.extname(filePath);
     const contentType = contentTypes[ext] || 'text/plain';
-    
+
     // Read and serve the file
     const content = readFileSync(filePath);
-    res.writeHead(200, { 'Content-Type': contentType });
+    res.writeHead(200, {'Content-Type': contentType});
     res.end(content);
   } catch (err) {
     res.writeHead(500);
@@ -45,10 +96,16 @@ const server = createServer((req, res) => {
   }
 });
 
-// Start server on a random port
-server.listen(0, () => {
-  const port = server.address().port;
-  const url = `http://localhost:${port}`;
-  console.log(`DeepRead is running at ${url}`);
-  open(url);
-}); 
+// Start server on an available port
+(async () => {
+  try {
+    const port = await findAvailablePort(8080);
+    server.listen(port, () => {
+      const url = `http://localhost:${port}`;
+      console.log(`DeepRead is running at ${url}`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err.message);
+    process.exit(1);
+  }
+})();

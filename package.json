@@ -1,36 +1,38 @@
 {
-  "name": "deepread",
-  "author": "qn.khuat@gmail.com",
+  "name": "deepread-workspace",
   "version": "1.0.0",
-  "description": "Deep Read with LLM support - Frontend Only",
-  "main": "app/main.js",
-  "bin": {
-    "deepread": "bin/deepread.js"
-  },
+  "description": "Workspace for DeepRead - A PDF reader application with AI chat capabilities",
+  "private": true,
   "scripts": {
-    "dev": "cd frontend && npm run dev",
-    "dev:electron": "concurrently -n 'frontend,electron' -c 'yellow,blue' 'cd frontend && VITE_WATCH=true npm run dev' 'electron .'",
-    "build": "cd frontend && npm install && npm run build",
-    "build:electron": "npm run build && electron-forge make",
-    "preview": "cd frontend && npm run preview"
+    "setup": "npm install && cd frontend && npm install && cd ../bin && npm install",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "dev:electron": "concurrently -n 'frontend,electron' -c 'yellow,blue' 'cd frontend && VITE_WATCH=true npm run dev' 'cd app && npx electron .'",
+    "build:electron": "npm run build:frontend && cd app && npx electron-forge make",
+    "build:bin": "npm run build:frontend && mkdir -p bin/frontend && cp -r frontend/dist/* bin/frontend/ && cd bin && npm version $npm_package_version && npm pack"
   },
-  "config": {
-    "forge": "./forge.config.js"
-  },
+  "keywords": [
+    "pdf",
+    "reader",
+    "ai",
+    "chat",
+    "llm",
+    "openai",
+    "anthropic",
+    "claude",
+    "gpt"
+  ],
+  "author": "qn.khuat@gmail.com",
+  "license": "MIT",
   "devDependencies": {
-    "@electron-forge/cli": "^7.7.0",
-    "@electron-forge/maker-deb": "^7.7.0",
-    "@electron-forge/maker-dmg": "^7.7.0",
-    "@electron-forge/maker-squirrel": "^7.7.0",
-    "@electron-forge/maker-zip": "^7.7.0",
-    "@electron-forge/publisher-github": "^7.7.0",
-    "concurrently": "^8.2.2",
-    "electron": "^34.2.0"
+    "concurrently": "^8.2.2"
   },
-  "dependencies": {
-    "electron-squirrel-startup": "^1.0.1",
-    "open": "^9.1.0",
-    "portscanner": "^2.2.0"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qnkhuat/deepread.git"
   },
-  "license": "MIT"
+  "bugs": {
+    "url": "https://github.com/qnkhuat/deepread/issues"
+  },
+  "homepage": "https://github.com/qnkhuat/deepread#readme"
 }

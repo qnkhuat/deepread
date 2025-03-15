@@ -2,9 +2,8 @@
   "name": "deepread",
   "version": "1.0.0",
   "description": "A PDF reader application with AI chat capabilities",
-  "main": "app/main.js",
   "bin": {
-    "deepread": "bin/deepread.js"
+    "deepread": "deepread.js"
   },
   "keywords": [
     "pdf",
@@ -20,7 +19,6 @@
   "author": "qn.khuat@gmail.com",
   "license": "MIT",
   "dependencies": {
-    "open": "^9.1.0"
   },
   "repository": {
     "type": "git",
@@ -30,4 +28,4 @@
     "url": "https://github.com/qnkhuat/deepread/issues"
   },
   "homepage": "https://github.com/qnkhuat/deepread#readme"
-} 
+}

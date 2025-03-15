@@ -6,7 +6,7 @@ module.exports = {
     appId: 'com.deepread.app',
     asar: true,
     executableName: 'DeepRead',
-    icon: path.resolve(__dirname, './frontend/public/icon/macos/icon'),
+    icon: path.resolve(__dirname, '../frontend/public/icon/macos/icon'),
     ignore: (path) => {
       // Include all production dependencies
       if (path.includes('node_modules')) {
@@ -29,8 +29,8 @@ module.exports = {
       name: '@electron-forge/maker-squirrel',
       config: {
         name: 'DeepRead',
-        iconUrl: path.resolve(__dirname, './frontend/public/icon/win/icon.ico'),
-        setupIcon: path.resolve(__dirname, './frontend/public/icon/win/icon.ico'),
+        iconUrl: path.resolve(__dirname, '../frontend/public/icon/win/icon.ico'),
+        setupIcon: path.resolve(__dirname, '../frontend/public/icon/win/icon.ico'),
       },
     },
     {
@@ -42,14 +42,14 @@ module.exports = {
       config: {
         format: 'ULFO',
         name: 'DeepRead',
-        icon: path.resolve(__dirname, './frontend/public/icon/macos/icon.icns'),
+        icon: path.resolve(__dirname, '../frontend/public/icon/macos/icon.icns'),
       },
     },
     {
       name: '@electron-forge/maker-deb',
       config: {
         options: {
-          icon: path.resolve(__dirname, './frontend/public/icon/png/1024x1024.png'),
+          icon: path.resolve(__dirname, '../frontend/public/icon/png/1024x1024.png'),
           categories: ['Utility'],
         },
       },
@@ -72,7 +72,7 @@ module.exports = {
       console.log(`Packaging for ${platform} ${arch} complete!`);
       
       // Ensure frontend files are correctly placed
-      const frontendDistPath = path.join(__dirname, 'frontend', 'dist');
+      const frontendDistPath = path.join(__dirname, '../frontend', 'dist');
       const destFrontendPath = path.join(buildPath, 'frontend', 'dist');
       
       if (fs.existsSync(frontendDistPath)) {

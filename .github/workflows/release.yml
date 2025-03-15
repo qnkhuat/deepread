@@ -29,6 +29,12 @@ jobs:
       - name: Install root dependencies
         run: npm install
 
+      - name: Update version in package.json for Electron
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" app/package.json
+          sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" package.json
+
       - name: Build application
         run: npm run build:electron
         env:
@@ -39,13 +45,31 @@ jobs:
         run: |
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             # Find the Squirrel installer and rename it
-            find out/make -name "*.exe" -not -path "*/make-*/*" -exec mv {} out/make/DeepRead-App-Windows-${{ github.ref_name }}.exe \;
+            INSTALLER=$(find out/make -name "*.exe" -not -path "*/make-*/*" | head -n 1)
+            if [ -n "$INSTALLER" ]; then
+              mv "$INSTALLER" out/make/DeepRead-App-Windows-${{ github.ref_name }}.exe
+            else
+              echo "Warning: Windows installer not found"
+              exit 1
+            fi
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             # Find the DMG and rename it
-            find out/make -name "*.dmg" -exec mv {} out/make/DeepRead-App-macOS-${{ github.ref_name }}.dmg \;
+            DMG=$(find out/make -name "*.dmg" | head -n 1)
+            if [ -n "$DMG" ]; then
+              mv "$DMG" out/make/DeepRead-App-macOS-${{ github.ref_name }}.dmg
+            else
+              echo "Warning: macOS DMG not found"
+              exit 1
+            fi
           else
             # Find the deb and rename it
-            find out/make -name "*.deb" -exec mv {} out/make/DeepRead-App-Linux-${{ github.ref_name }}.deb \;
+            DEB=$(find out/make -name "*.deb" | head -n 1)
+            if [ -n "$DEB" ]; then
+              mv "$DEB" out/make/DeepRead-App-Linux-${{ github.ref_name }}.deb
+            else
+              echo "Warning: Linux DEB not found"
+              exit 1
+            fi
           fi
 
       - name: Upload artifacts
@@ -57,6 +81,8 @@ jobs:
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ env.VERSION }}
 
     steps:
       - name: Checkout code
@@ -71,45 +97,34 @@ jobs:
 
       - name: Extract version from tag
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Update version in package.json files
         run: |
-          # Update npm-package.json with the version
-          sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" npm-package.json
-          # Update frontend package.json
-          cd frontend && npm version $VERSION --no-git-tag-version
-
-      - name: Install dependencies and build frontend
-        run: |
-          cd frontend
-          npm install
-          npm run build
-
-      - name: Create npm package
-        run: |
-          # Create a dist directory for the npm package
-          mkdir -p npm-dist/frontend
-          mkdir -p npm-dist/bin
+          sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" bin/package.json
           
-          # Copy necessary files
-          cp -r frontend/dist/* npm-dist/frontend/
-          cp bin/deepread.js npm-dist/bin/
-          cp npm-package.json npm-dist/package.json
-          cp README.md npm-dist/
-          cp LICENSE npm-dist/ || touch npm-dist/LICENSE
+      - name: Install dependencies
+        run: npm run setup
 
-      - name: Publish to npm
+      - name: Build and publish npm package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          cd npm-dist
+          # Build the package using the build:bin script
+          npm run build:bin
+          # Publish the package
+          cd bin
           npm publish --access public
 
   create-release:
     name: Create GitHub Release
     needs: [build-electron, publish-npm]
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.publish-npm.outputs.version }}
 
     permissions:
       contents: write
