@@ -30,7 +30,8 @@ const PROVIDER_CONFIG = {
 // Define default settings
 const DEFAULT_SETTINGS = {
   current_model: null,
-  providers: PROVIDER_CONFIG
+  providers: PROVIDER_CONFIG,
+  darkMode: false // Add dark mode preference, default to light mode
 };
 
 // Helper function to initialize settings from localStorage

@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useState, useEffect} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {Document, Page, pdfjs} from 'react-pdf';
 import {
@@ -8,7 +8,8 @@ import {
   Typography,
   Paper,
   Container,
-  Slider
+  Slider,
+  useTheme
 } from '@mui/material';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -50,6 +51,7 @@ Ensure that your final answer is detailed, insightful, and directly based on the
 }
 
 function Viewer() {
+  const theme = useTheme();
   const [numPages, setNumPages] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -320,15 +322,16 @@ function Viewer() {
         height: 'calc(100vh - 50px)',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'background.default',
       }}
     >
       <Paper
         elevation={0}
         sx={{
-          border: '3px dashed #ccc',
+          border: `3px dashed ${theme.palette.divider}`,
           cursor: 'pointer',
-          bgcolor: 'grey.50',
+          bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
           width: '100%',
           height: '100%',
           display: 'flex',
@@ -368,7 +371,7 @@ function Viewer() {
         display: 'flex',
         height: 'calc(100vh - 50px)',
         gap: '1px',
-        bgcolor: 'grey.100'
+        bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100'
       }}>
         {/* PDF Viewer Column */}
         <Box sx={{
@@ -376,15 +379,17 @@ function Viewer() {
           height: '100%',
           overflow: 'hidden',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'background.default',
+          borderRight: 0
         }}>
           {/* Add PDF controls */}
           <Box sx={{
             p: 1,
             display: 'flex',
             alignItems: 'center',
-            bgcolor: 'white',
-            borderBottom: '1px solid #e0e0e0'
+            bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'background.default',
+            borderBottom: `1px solid ${theme.palette.divider}`
           }}>
             <Typography variant="body2" sx={{mr: 2}}>Zoom:</Typography>
             <Slider
@@ -401,12 +406,15 @@ function Viewer() {
             onMouseUp={handleTextSelection}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
+            elevation={0}
             sx={{
               height: '100%',
               overflow: 'auto',
-              p: 2,
+              p: theme.palette.mode === 'dark' ? 3 : 2,
               position: 'relative',
-              flexGrow: 1
+              flexGrow: 1,
+              bgcolor: theme.palette.mode === 'dark' ? 'grey.900 !important' : 'background.default !important',
+              borderRadius: 0
             }}
           >
             {selection.visible && (
@@ -424,7 +432,14 @@ function Viewer() {
                 Add to chat
               </Button>
             )}
-            <Stack spacing={2} alignItems="center" sx={{minWidth: 'fit-content'}}>
+            <Stack spacing={2} alignItems="center" sx={{
+              minWidth: 'fit-content',
+              '& .react-pdf__Document': {
+                padding: 0,
+                backgroundColor: 'transparent',
+                borderRadius: 0
+              }
+            }}>
               <Document
                 file={pdfUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
@@ -448,15 +463,19 @@ function Viewer() {
         <Box sx={{
           flex: '1 1 30%',
           height: '100%',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'background.default',
+          borderLeft: `1px solid ${theme.palette.divider}`
         }}>
           <Paper
-            elevation={1}
+            elevation={0}
             sx={{
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              bgcolor: 'transparent',
+              borderRadius: 0
             }}
           >
             <Chat
@@ -480,18 +499,67 @@ function Viewer() {
   );
 }
 
-// Keep only the PDF page styles
-const pageStyles = `
-  .pdf-page {
-    border: 1px solid #ccc;
-    box-shadow: 0 0 10px rgba(0,0,0,.2);
-    margin-bottom: 20px;
-  }
-`;
+// Create dynamic PDF page styles based on theme
+function createPageStyles(isDarkMode) {
+  return `
+    .pdf-page {
+      border: ${isDarkMode ? 'none' : '1px solid #ccc'};
+      box-shadow: ${isDarkMode ? '0 0 15px rgba(0,0,0,.8)' : '0 0 10px rgba(0,0,0,.2)'};
+      margin-bottom: 20px;
+      background-color: #fff;
+    }
+    
+    /* Improve text layer visibility */
+    .pdf-page .textLayer {
+      opacity: 0.2;
+      color: #000;
+      mix-blend-mode: darken;
+    }
+    
+    /* Keep annotation layer normal */
+    .pdf-page .annotationLayer {
+      filter: none;
+    }
 
-// Add a style tag to the component
-const styleTag = document.createElement('style');
-styleTag.textContent = pageStyles;
-document.head.appendChild(styleTag);
+    /* Keep PDF colors normal for better readability */
+    .pdf-page canvas {
+      filter: none;
+    }
+  `;
+}
 
-export default Viewer;
+// Add a style tag to the component that updates with theme changes
+function PdfStyles() {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
+  
+  useEffect(() => {
+    const styleTag = document.getElementById('pdf-styles') || document.createElement('style');
+    styleTag.id = 'pdf-styles';
+    styleTag.textContent = createPageStyles(isDarkMode);
+    
+    if (!document.getElementById('pdf-styles')) {
+      document.head.appendChild(styleTag);
+    }
+    
+    return () => {
+      if (document.getElementById('pdf-styles')) {
+        document.head.removeChild(styleTag);
+      }
+    };
+  }, [isDarkMode]);
+  
+  return null;
+}
+
+// Wrap the Viewer component to include the dynamic styles
+function ViewerWithStyles() {
+  return (
+    <>
+      <PdfStyles />
+      <Viewer />
+    </>
+  );
+}
+
+export default ViewerWithStyles;

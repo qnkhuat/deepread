@@ -7,6 +7,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { useState, useEffect } from 'react';
 import * as api from '@/api';
 import * as providerUtils from '../utils/providerUtils';
@@ -239,6 +241,10 @@ function TopBar() {
     setSearchTerm(event.target.value);
   };
 
+  const handleDarkModeToggle = () => {
+    updateSetting('darkMode', !settings.darkMode);
+  };
+
   return (
     <Container maxWidth={false} sx={{ height: '50px', borderBottom: '1px solid #e0e0e0' }}>
       <Box sx={{ 
@@ -399,6 +405,16 @@ function TopBar() {
               </Box>
             )}
           </Menu>
+          
+          <IconButton 
+            onClick={handleDarkModeToggle}
+            size="small"
+            color="inherit"
+            title={settings.darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          >
+            {settings.darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton>
+          
           <IconButton 
             onClick={handleOpenConfig}
             size="small"
@@ -433,14 +449,27 @@ function TopBar() {
         }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <h2>Provider Configuration</h2>
-            <IconButton 
-              onClick={() => setFaqOpen(true)}
-              size="small"
-              color="primary"
-              title="Frequently Asked Questions"
-            >
-              <HelpOutlineIcon />
-            </IconButton>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={settings.darkMode}
+                    onChange={handleDarkModeToggle}
+                    name="darkMode"
+                    color="primary"
+                  />
+                }
+                label={settings.darkMode ? "Dark Mode" : "Light Mode"}
+              />
+              <IconButton 
+                onClick={() => setFaqOpen(true)}
+                size="small"
+                color="primary"
+                title="Frequently Asked Questions"
+              >
+                <HelpOutlineIcon />
+              </IconButton>
+            </Box>
           </Box>
           {!providerUtils.isAnyProviderEnabled(settings.providers) && (
             <Box sx={{ mb: 3, p: 2, bgcolor: 'primary.light', color: 'primary.contrastText', borderRadius: 1 }}>

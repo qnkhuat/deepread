@@ -1,127 +1,139 @@
 import ReactMarkdown from 'react-markdown';
-import {Box, Stack, TextField, Button, Paper, CircularProgress, Typography} from '@mui/material';
+import {Box, Stack, TextField, Button, Paper, CircularProgress, Typography, useTheme} from '@mui/material';
 import {useEffect, useRef, useState} from 'react';
 import * as providerUtils from '@/utils/providerUtils';
 import EditIcon from '@mui/icons-material/Edit';
 
-const styles = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%'
-  },
-  messagesContainer: {
-    flexGrow: 1,
-    overflow: 'auto',
-    p: 2
-  },
-  message: {
-    base: {
-      p: '10px 16px',
-      borderRadius: 2,
-      maxWidth: '80%',
-      pt: 0,
-      pb: 0,
-      position: 'relative',
-      '&:hover .edit-button': {
-        opacity: 1,
-        visibility: 'visible',
-      }
-    },
-    user: {
-      ml: 'auto',
-      mr: 0,
-      alignSelf: 'flex-end',
-      bgcolor: 'primary.main',
-      color: 'primary.contrastText',
-    },
-    assistant: {
-      ml: 0,
-      mr: 'auto',
-      alignSelf: 'flex-start',
-      bgcolor: 'background.paper',
-      color: 'text.primary',
-      boxShadow: 'none',
-    },
-    assistant_latest: {
-      height: 'calc(100vh - 250px)',
-    }
-  },
-  editButton: {
-    container: {
-      position: 'absolute',
-      top: '50%',
-      left: -40,
-      transform: 'translateY(-50%)',
-      opacity: 0,
-      visibility: 'hidden',
-      transition: 'opacity 0.2s, visibility 0.2s',
-    },
-    button: {
-      minWidth: 'auto',
-      p: 0.5,
-      minHeight: '24px',
-      lineHeight: 1
-    }
-  },
-  editForm: {
-    p: 1
-  },
-  editTextField: {
-    width: '100%'
-  },
-  editActions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    mt: 1
-  },
-  cancelButton: {
-    mr: 1
-  },
-  loader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    py: 1
-  },
-  suggestedPromptsContainer: {
-    p: 2,
-    borderTop: '1px solid #e0e0e0'
-  },
-  suggestedPromptsTitle: {
-    mb: 1
-  },
-  suggestedPromptsList: {
-    flexWrap: 'wrap',
-    gap: 1
-  },
-  inputContainer: {
-    p: 2,
-    borderTop: 1,
-    borderColor: 'divider'
-  },
-  form: {
-    display: 'flex',
-    gap: 1
-  },
-  input: {
-    flex: 1
-  },
-  costDisplay: {
-    fontSize: '0.75rem',
-    color: 'text.secondary',
-    textAlign: 'left',
-    mt: 1
-  }
-};
-
 function Chat({messages, inputMessage, setInputMessage, handleSendMessage, suggestedPrompts = [], handleSuggestedPrompt, onEditMessage, sessionCost = 0}) {
+  const theme = useTheme();
   const messageEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const lastUserMessageRef = useRef(null);
   const [editingIndex, setEditingIndex] = useState(null);
   const [editedMessage, setEditedMessage] = useState('');
   const [shouldScrollToLastUserMessage, setShouldScrollToLastUserMessage] = useState(false);
+
+  // Define styles with theme-aware colors
+  const styles = {
+    container: {
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'background.default',
+    },
+    messagesContainer: {
+      flexGrow: 1,
+      overflow: 'auto',
+      p: 2,
+      bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'background.default',
+    },
+    message: {
+      base: {
+        p: '10px 16px',
+        borderRadius: 2,
+        maxWidth: '80%',
+        pt: 0,
+        pb: 0,
+        position: 'relative',
+        '&:hover .edit-button': {
+          opacity: 1,
+          visibility: 'visible',
+        }
+      },
+      user: {
+        ml: 'auto',
+        mr: 0,
+        alignSelf: 'flex-end',
+        bgcolor: 'primary.main',
+        color: 'primary.contrastText',
+      },
+      assistant: {
+        ml: 0,
+        mr: 'auto',
+        alignSelf: 'flex-start',
+        bgcolor: theme.palette.mode === 'dark' ? 'grey.800' : 'background.paper',
+        color: 'text.primary',
+        boxShadow: theme.palette.mode === 'dark' ? '0 0 5px rgba(255,255,255,0.1)' : 'none',
+        border: `1px solid ${theme.palette.divider}`,
+      },
+      assistant_latest: {
+        height: 'auto',
+        maxHeight: 'calc(100vh - 250px)',
+        overflowY: 'auto'
+      }
+    },
+    editButton: {
+      container: {
+        position: 'absolute',
+        top: '50%',
+        left: -40,
+        transform: 'translateY(-50%)',
+        opacity: 0,
+        visibility: 'hidden',
+        transition: 'opacity 0.2s, visibility 0.2s',
+      },
+      button: {
+        minWidth: 'auto',
+        p: 0.5,
+        minHeight: '24px',
+        lineHeight: 1
+      }
+    },
+    editForm: {
+      p: 1
+    },
+    editTextField: {
+      width: '100%'
+    },
+    editActions: {
+      display: 'flex',
+      justifyContent: 'flex-end',
+      mt: 1
+    },
+    cancelButton: {
+      mr: 1
+    },
+    loader: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      py: 1
+    },
+    suggestedPromptsContainer: {
+      p: 2,
+      borderTop: `1px solid ${theme.palette.divider}`,
+      bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'background.default',
+    },
+    suggestedPromptsTitle: {
+      mb: 1
+    },
+    suggestedPromptsList: {
+      flexWrap: 'wrap',
+      gap: 1
+    },
+    inputContainer: {
+      p: 2,
+      borderTop: 1,
+      borderColor: 'divider',
+      bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'background.default',
+    },
+    form: {
+      display: 'flex',
+      gap: 1
+    },
+    input: {
+      flex: 1,
+      '& .MuiOutlinedInput-root': {
+        bgcolor: theme.palette.mode === 'dark' ? 'grey.800' : 'background.paper',
+      }
+    },
+    costDisplay: {
+      fontSize: '0.75rem',
+      color: 'text.secondary',
+      textAlign: 'left',
+      mt: 1
+    }
+  };
 
   const isTyping = messages.some(message =>
     message.role === 'assistant' && message.isStreaming
@@ -180,7 +192,7 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
             return (
               <Paper
                 key={index}
-                elevation={1}
+                elevation={message.role === 'user' ? 2 : 1}
                 ref={isLastUserMessage ? lastUserMessageRef : null}
                 sx={messageStyle}
               >
@@ -211,6 +223,7 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
                       sx={{
                         '& .MuiOutlinedInput-root': {
                           color: message.role === 'user' ? 'primary.contrastText' : 'text.primary',
+                          bgcolor: theme.palette.mode === 'dark' && message.role !== 'user' ? 'grey.800' : 'transparent',
                         }
                       }}
                     />
@@ -259,7 +272,7 @@ function Chat({messages, inputMessage, setInputMessage, handleSendMessage, sugge
       )}
 
       <Paper
-        elevation={2}
+        elevation={0}
         sx={styles.inputContainer}
       >
         <Box
