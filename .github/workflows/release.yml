@@ -86,6 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ env.VERSION }}
+    if: false
 
     steps:
       - name: Checkout code
@@ -116,6 +117,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          cp README.md bin/README.md
           # Build the package using the build:bin script
           npm run build:bin
           # Publish the package
