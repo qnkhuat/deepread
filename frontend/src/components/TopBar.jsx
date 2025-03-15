@@ -1,11 +1,12 @@
 import { useSettings } from '../contexts/SettingsContext';
-import { Container, Modal, TextField, IconButton, Switch, MenuItem, List, ListItem, ListItemText, ListSubheader, Box, Typography, Button, Menu, InputAdornment, FormControlLabel } from '@mui/material';
+import { Container, Modal, TextField, IconButton, Switch, MenuItem, List, ListItem, ListItemText, ListSubheader, Box, Typography, Button, Menu, InputAdornment, FormControlLabel, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import SearchIcon from '@mui/icons-material/Search';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { useState, useEffect } from 'react';
 import * as api from '@/api';
 import * as providerUtils from '../utils/providerUtils';
@@ -23,6 +24,7 @@ function TopBar() {
   const [expandedProviders, setExpandedProviders] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredModels, setFilteredModels] = useState({});
+  const [faqOpen, setFaqOpen] = useState(false);
 
   // Fetch models only for configured providers that don't have models cached
   const fetchModelsForProviders = async () => {
@@ -429,7 +431,17 @@ function TopBar() {
           maxHeight: '80vh',
           overflow: 'auto'
         }}>
-          <h2>Provider Configuration</h2>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <h2>Provider Configuration</h2>
+            <IconButton 
+              onClick={() => setFaqOpen(true)}
+              size="small"
+              color="primary"
+              title="Frequently Asked Questions"
+            >
+              <HelpOutlineIcon />
+            </IconButton>
+          </Box>
           {!providerUtils.isAnyProviderEnabled(settings.providers) && (
             <Box sx={{ mb: 3, p: 2, bgcolor: 'primary.light', color: 'primary.contrastText', borderRadius: 1 }}>
               <Typography variant="h6">Welcome to DeepRead!</Typography>
@@ -553,6 +565,121 @@ function TopBar() {
               {providerUtils.isAnyProviderEnabled(settings.providers) 
                 ? 'Close' 
                 : 'Please enable at least one provider'}
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+      
+      {/* FAQ Modal */}
+      <Modal
+        open={faqOpen}
+        onClose={() => setFaqOpen(false)}
+        aria-labelledby="faq-modal"
+      >
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          bgcolor: 'background.paper',
+          boxShadow: 24,
+          p: 4,
+          borderRadius: 1,
+          width: '600px',
+          maxHeight: '80vh',
+          overflow: 'auto'
+        }}>
+          <Typography variant="h5" component="h2" sx={{ mb: 3 }}>
+            Frequently Asked Questions
+          </Typography>
+          
+          <Accordion defaultExpanded>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="subtitle1" fontWeight="bold">
+                Is it safe to enter my API keys?
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Typography variant="body1" paragraph>
+                Yes, your API keys are completely safe. DeepRead is a static application that runs entirely on your device.
+              </Typography>
+              <Typography variant="body1" paragraph>
+                Your API keys are:
+              </Typography>
+              <Typography component="ul" sx={{ pl: 2 }}>
+                <li>Stored locally on your device only</li>
+                <li>DeepRead has no backend servers at all</li>
+                <li>Only used to communicate directly with your chosen AI provider (OpenAI, Anthropic, etc.)</li>
+                <li>Transmitted securely using HTTPS to the provider's API</li>
+              </Typography>
+              <Typography variant="body1" sx={{ mt: 2 }}>
+                DeepRead is a completely client-side application with no backend server. Your data and API keys never leave your device except when making direct API calls to your chosen AI provider.
+              </Typography>
+            </AccordionDetails>
+          </Accordion>
+          
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="subtitle1" fontWeight="bold">
+                Where are my API keys stored?
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Typography variant="body1">
+                Your API keys are stored locally in your browser's localStorage (for the web version) or in your system's application data (for the desktop version). They never leave your device except when making direct API calls to your chosen provider.
+              </Typography>
+            </AccordionDetails>
+          </Accordion>
+          
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="subtitle1" fontWeight="bold">
+                Do you track my API usage or conversations?
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Typography variant="body1">
+                No. DeepRead does not track, store, or have access to your conversations or API usage. All interactions with AI models happen directly between your device and the AI provider. We have no way to access or monitor these communications.
+              </Typography>
+            </AccordionDetails>
+          </Accordion>
+          
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="subtitle1" fontWeight="bold">
+                Is DeepRead open source?
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Typography variant="body1" paragraph>
+                Yes! DeepRead is an open-source project. You can view the source code, contribute, or report issues on GitHub:
+              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1, mb: 1 }}>
+                <Button 
+                  variant="outlined" 
+                  component="a" 
+                  href="https://github.com/qnkhuat/deepread" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  startIcon={<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
+                  </svg>}
+                >
+                  github.com/qnkhuat/deepread
+                </Button>
+              </Box>
+              <Typography variant="body1">
+                We welcome feedback, feature requests, and contributions from the community!
+              </Typography>
+            </AccordionDetails>
+          </Accordion>
+          
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button 
+              variant="contained" 
+              onClick={() => setFaqOpen(false)}
+            >
+              Close
             </Button>
           </Box>
         </Box>
