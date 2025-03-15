@@ -48,7 +48,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p out/make
-          
+
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             FILE_TYPE="exe"
             PLATFORM="Windows"
@@ -65,7 +65,7 @@ jobs:
             FIND_PATTERN="*.deb"
             EXCLUDE_PATTERN=""
           fi
-          
+
           INSTALLER=$(find app/out/make -name "$FIND_PATTERN" $EXCLUDE_PATTERN | head -n 1)
           if [ -n "$INSTALLER" ]; then
             cp "$INSTALLER" out/make/DeepRead-App-$PLATFORM-${{ github.ref_name }}.$FILE_TYPE
@@ -85,7 +85,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ env.VERSION }}
-    if: false
 
     steps:
       - name: Checkout code
