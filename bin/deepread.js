@@ -82,18 +82,6 @@ function isPortAvailable(port) {
   });
 }
 
-// Function to find an available port
-async function findAvailablePort(startPort = 8080) {
-  let port = startPort;
-  while (!(await isPortAvailable(port))) {
-    port++;
-    if (port > startPort + 100) {
-      throw new Error('Could not find an available port after 100 attempts');
-    }
-  }
-  return port;
-}
-
 // Create server
 const server = createServer((req, res) => {
   try {
@@ -120,12 +108,11 @@ const server = createServer((req, res) => {
   }
 });
 
-// Start server on an available port
+// Start server on the specified port
 (async () => {
   try {
-    const port = await findAvailablePort(startPort);
-    server.listen(port, host, () => {
-      const url = `http://${host}:${port}`;
+    server.listen(startPort, host, () => {
+      const url = `http://${host}:${startPort}`;
       console.log(`DeepRead is running at ${url}`);
     });
   } catch (err) {
