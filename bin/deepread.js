@@ -4,6 +4,30 @@ const path = require('path');
 const {createServer} = require('http');
 const {readFileSync, existsSync} = require('fs');
 const net = require('net');
+const yargs = require('yargs/yargs');
+const { hideBin } = require('yargs/helpers');
+
+// Parse command line arguments using yargs
+const argv = yargs(hideBin(process.argv))
+  .option('host', {
+    alias: 'h',
+    type: 'string',
+    description: 'Host to bind the server to',
+    default: 'localhost'
+  })
+  .option('port', {
+    alias: 'p',
+    type: 'number',
+    description: 'Port to start looking for an available port',
+    default: 8080
+  })
+  .help()
+  .alias('help', '?')
+  .version()
+  .argv;
+
+const host = argv.host;
+const startPort = argv.port;
 
 // Path to frontend files - try multiple locations
 let frontendPath;
@@ -99,9 +123,9 @@ const server = createServer((req, res) => {
 // Start server on an available port
 (async () => {
   try {
-    const port = await findAvailablePort(8080);
-    server.listen(port, () => {
-      const url = `http://localhost:${port}`;
+    const port = await findAvailablePort(startPort);
+    server.listen(port, host, () => {
+      const url = `http://${host}:${port}`;
       console.log(`DeepRead is running at ${url}`);
     });
   } catch (err) {

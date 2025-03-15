@@ -23,6 +23,7 @@
   "author": "qn.khuat@gmail.com",
   "license": "MIT",
   "dependencies": {
+    "yargs": "^17.7.2"
   },
   "repository": {
     "type": "git",
