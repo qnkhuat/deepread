@@ -5,6 +5,10 @@
   "bin": {
     "deepread": "deepread.js"
   },
+  "files": [
+    "deepread.js",
+    "frontend/**/*"
+  ],
   "keywords": [
     "pdf",
     "reader",
