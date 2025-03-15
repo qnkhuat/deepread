@@ -2,6 +2,8 @@
 
 DeepRead is a PDF reader application that allows you to chat with your documents using AI. It processes PDFs and lets you interact with them using various LLM providers.
 
+![Screenshot](/statics/demo.png)
+
 ## Features
 
 - Upload and view PDF documents
