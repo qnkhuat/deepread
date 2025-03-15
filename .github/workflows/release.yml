@@ -29,10 +29,14 @@ jobs:
       - name: Install root dependencies
         run: npm install
 
+      - name: Install app dependencies
+        run: cd app && npm install
+
       - name: Update version in package.json for Electron
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           sed -i.bak "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" app/package.json
+          sed -i.bak "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" package.json
 
       - name: Build application
         run: npm run build:electron
@@ -103,7 +107,7 @@ jobs:
 
       - name: Update version in package.json files
         run: |
-          sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" bin/package.json
+          sed -i.bak "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" bin/package.json
           
       - name: Install dependencies
         run: npm run setup
@@ -113,7 +117,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           # Build the package using the build:bin script
-          npm run build:bin
+        npm run build:bin
           # Publish the package
           cd bin
           npm publish --access public
@@ -164,5 +168,5 @@ jobs:
             ### npm Package
             The package is also available on npm:
             ```
-            npm install -g deepread@${{ env.VERSION }}
+            npm install -g @qnkhuat/deepread@${{ env.VERSION }}
             ```

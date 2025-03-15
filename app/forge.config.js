@@ -11,9 +11,7 @@ module.exports = {
       // Include all production dependencies
       if (path.includes('node_modules')) {
         // Only include production dependencies
-        if (!path.includes('node_modules/.bin') && 
-            !path.includes('node_modules/electron-prebuilt') && 
-            !path.includes('node_modules/electron-prebuilt-compile')) {
+        if (!path.includes('node_modules/.bin')) {
           return false;
         }
         return true;

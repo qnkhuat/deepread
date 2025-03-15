@@ -8,8 +8,8 @@
     "dev:frontend": "cd frontend && npm run dev",
     "build:frontend": "cd frontend && npm install && npm run build",
     "dev:electron": "concurrently -n 'frontend,electron' -c 'yellow,blue' 'cd frontend && VITE_WATCH=true npm run dev' 'cd app && npx electron .'",
-    "build:electron": "npm run build:frontend && cd app && npx electron-forge make",
-    "build:bin": "npm run build:frontend && mkdir -p bin/frontend && cp -r frontend/dist/* bin/frontend/ && cd bin && npm version $npm_package_version && npm pack"
+    "build:electron": "npm run build:frontend && cd app && npm run make",
+    "build:bin": "npm run build:frontend && mkdir -p bin/frontend && cp -r frontend/dist/* bin/frontend/ && cd bin && npm pack"
   },
   "keywords": [
     "pdf",

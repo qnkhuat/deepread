@@ -5,7 +5,9 @@
   "description": "Deep Read with LLM support - Electron App",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "config": {
     "forge": "./forge.config.js"

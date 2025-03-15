@@ -1,5 +1,5 @@
 {
-  "name": "deepread",
+  "name": "@qnkhuat/deepread",
   "version": "1.0.0",
   "description": "A PDF reader application with AI chat capabilities",
   "bin": {

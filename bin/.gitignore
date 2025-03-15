@@ -1,0 +1,8 @@
+# deps during build
+frontend/
+
+# Dependency directories
+node_modules/
+
+# Output of 'npm pack'
+*.tgz
