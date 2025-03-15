@@ -108,7 +108,7 @@ jobs:
       - name: Update version in package.json files
         run: |
           sed -i.bak "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" bin/package.json
-          
+
       - name: Install dependencies
         run: npm run setup
 
@@ -117,7 +117,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           # Build the package using the build:bin script
-        npm run build:bin
+          npm run build:bin
           # Publish the package
           cd bin
           npm publish --access public
