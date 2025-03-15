@@ -33,6 +33,7 @@ jobs:
         run: cd app && npm install
 
       - name: Update version in package.json for Electron
+        shell: bash
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           sed -i.bak "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" app/package.json
